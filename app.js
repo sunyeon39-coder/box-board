@@ -1,9 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getFirestore, doc, onSnapshot, runTransaction, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* ✅ 너가 전에 올렸던 설정 (필요하면 이것만 교체) */
+/* ✅ 네 Firebase 설정 */
 const firebaseConfig = {
   apiKey: "AIzaSyDXZM15ex4GNFdf2xjVOW-xopMHf_AMYGc",
   authDomain: "box-board.firebaseapp.com",
@@ -15,24 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const stateRef = doc(db, "boxboard", "state");
-
-/* -----------------------------
-   State schema
---------------------------------
-state = {
-  rev: number,
-  updatedAt,
-  boards: [
-    { id, name, boxes: [
-      { id,label,x,y,w,h,color,text, seat:null|{id,name,assignedAt}, createdAt }
-    ]}
-  ],
-  activeBoardId,
-  waiting: [{id,name,createdAt}],
-}
-*/
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,7 +57,6 @@ const el = {
   dlgTextOk: $("dlgTextOk"),
 
   dlgColor: $("dlgColor"),
-
   btnSelectionMode: $("btnSelectionMode"),
 };
 
@@ -86,126 +66,61 @@ let isPanelOpen = true;
 let zoom = 1;
 let activeBoardId = "b1";
 let selectedBoxIds = new Set();
-let selectionModeMobile = false; // 모바일에서 탭으로 선택
+let selectionModeMobile = false;
 
-/* drag */
-let drag = null; // {startX,startY, originBoxes:[{id,x,y}], pointerId}
+let drag = null; // {pointerId,startX,startY, originBoxes:[{id,x,y}]}
 
-/* clock tick for timers */
-setInterval(() => {
-  renderLists();
-  renderStage(); // seat timer text update
-}, 1000);
+/* ---------- iOS/모바일에서 "안 눌림" 방지용 바인더 ---------- */
+function bindTap(element, handler) {
+  if (!element) return;
+  element.addEventListener("click", (e) => handler(e));
+  element.addEventListener("touchend", (e) => {
+    e.preventDefault(); // 300ms/ghost click 방지 + click 누락 방지
+    handler(e);
+  }, { passive: false });
+}
 
-/* -----------------------------
-   Initialize default state (transaction-safe)
--------------------------------- */
+/* ---------- 기본 상태 생성 ---------- */
 async function ensureState() {
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(stateRef);
     if (snap.exists()) return;
 
-    const now = Date.now();
-    const defaultState = {
+    const mkBox = (label, x, y) => ({
+      id: "bx_" + Math.random().toString(36).slice(2, 10),
+      label, x, y, w: 260, h: 160,
+      color: "#4aa3ff",
+      text: "",
+      seat: null,
+      createdAt: Date.now()
+    });
+
+    tx.set(stateRef, {
       rev: 1,
       updatedAt: serverTimestamp(),
       activeBoardId: "b1",
       waiting: [],
       boards: [
-        {
-          id: "b1",
-          name: "배치도 1",
-          boxes: [
-            mkBox("BOX 1", 80, 90),
-            mkBox("BOX 2", 420, 90),
-            mkBox("BOX 3", 760, 90),
-            mkBox("BOX 4", 80, 320),
-            mkBox("BOX 5", 420, 320),
-            mkBox("BOX 6", 760, 320),
-          ]
-        },
-        {
-          id: "b2",
-          name: "배치도 2",
-          boxes: [
-            mkBox("BOX 1", 120, 120),
-            mkBox("BOX 2", 520, 120),
-            mkBox("BOX 3", 120, 360),
-            mkBox("BOX 4", 520, 360),
-          ]
-        }
+        { id: "b1", name: "배치도 1", boxes: [
+          mkBox("BOX 1", 80, 90),
+          mkBox("BOX 2", 420, 90),
+          mkBox("BOX 3", 760, 90),
+          mkBox("BOX 4", 80, 320),
+          mkBox("BOX 5", 420, 320),
+          mkBox("BOX 6", 760, 320),
+        ]},
+        { id: "b2", name: "배치도 2", boxes: [
+          mkBox("BOX 1", 120, 120),
+          mkBox("BOX 2", 520, 120),
+          mkBox("BOX 3", 120, 360),
+          mkBox("BOX 4", 520, 360),
+        ]}
       ]
-    };
-
-    function mkBox(label, x, y) {
-      return {
-        id: "bx_" + Math.random().toString(36).slice(2, 10),
-        label,
-        x, y,
-        w: 260,
-        h: 160,
-        color: "#4aa3ff",
-        text: "",
-        seat: null,
-        createdAt: now
-      };
-    }
-
-    tx.set(stateRef, defaultState);
+    });
   });
 }
 
-/* -----------------------------
-   Subscribe realtime
--------------------------------- */
-function subscribe() {
-  onSnapshot(stateRef, (snap) => {
-    if (!snap.exists()) return;
-    state = snap.data();
-    activeBoardId = state.activeBoardId || "b1";
-
-    el.syncLine.textContent = "연결됨";
-    el.syncBadge.textContent = "동기화됨 (Firestore)";
-    refreshCounts();
-    renderLists();
-    renderStage();
-    renderBoxList();
-    renderBoardButtons();
-  }, (err) => {
-    console.error(err);
-    el.syncLine.textContent = "연결 오류";
-    el.syncBadge.textContent = "동기화 실패";
-  });
-}
-
-/* -----------------------------
-   Helpers
--------------------------------- */
-function nowMs() { return Date.now(); }
-function fmtElapsed(ms) {
-  const s = Math.max(0, Math.floor(ms/1000));
-  const hh = Math.floor(s/3600);
-  const mm = Math.floor((s%3600)/60);
-  const ss = s%60;
-  if (hh > 0) return `${hh}:${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
-  return `${mm}:${String(ss).padStart(2,"0")}`;
-}
-function uid(prefix="id") {
-  return prefix + "_" + Math.random().toString(36).slice(2, 10);
-}
-function getBoard() {
-  return state.boards.find(b => b.id === activeBoardId) || state.boards[0];
-}
-function getAllBoxes() {
-  return getBoard().boxes;
-}
-function findBox(id) {
-  return getAllBoxes().find(b => b.id === id);
-}
-
-/* -----------------------------
-   Transaction update helper
--------------------------------- */
+/* ---------- 트랜잭션 업데이트 ---------- */
 async function updateState(mutator) {
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(stateRef);
@@ -219,9 +134,44 @@ async function updateState(mutator) {
   });
 }
 
-/* -----------------------------
-   UI: Tabs
--------------------------------- */
+function uid(prefix="id"){ return prefix + "_" + Math.random().toString(36).slice(2, 10); }
+function nowMs(){ return Date.now(); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms/1000));
+  const hh = Math.floor(s/3600);
+  const mm = Math.floor((s%3600)/60);
+  const ss = s%60;
+  if (hh > 0) return `${hh}:${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+  return `${mm}:${String(ss).padStart(2,"0")}`;
+}
+function hexToRgba(hex, a=1){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function getBoard() {
+  return state.boards.find(b => b.id === activeBoardId) || state.boards[0];
+}
+function getAllBoxes() {
+  return getBoard().boxes;
+}
+function findBox(id) {
+  return getAllBoxes().find(b => b.id === id);
+}
+
+/* ---------- 탭 ---------- */
 document.querySelectorAll(".tab").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
@@ -233,44 +183,36 @@ document.querySelectorAll(".tab").forEach(btn => {
   });
 });
 
-/* -----------------------------
-   Panel toggle
--------------------------------- */
-el.btnTogglePanel.addEventListener("click", () => {
+/* ---------- 패널 토글 ---------- */
+bindTap(el.btnTogglePanel, () => {
   isPanelOpen = !isPanelOpen;
   el.leftPanel.style.display = isPanelOpen ? "" : "none";
   el.btnTogglePanel.textContent = isPanelOpen ? "목록 닫기" : "목록 열기";
 });
 
-/* -----------------------------
-   Mobile selection mode toggle
--------------------------------- */
-el.btnSelectionMode.addEventListener("click", () => {
+/* ---------- 모바일 선택모드 ---------- */
+bindTap(el.btnSelectionMode, () => {
   selectionModeMobile = !selectionModeMobile;
   el.btnSelectionMode.textContent = `선택모드: ${selectionModeMobile ? "ON" : "OFF"}`;
 });
 
-/* -----------------------------
-   Waiting add
--------------------------------- */
-el.btnAdd.addEventListener("click", addWaiting);
-el.inpName.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") addWaiting();
-});
+/* ---------- 대기 추가 (문제 핵심: 여기 무조건 눌리게) ---------- */
 async function addWaiting() {
-  const name = el.inpName.value.trim();
+  const name = (el.inpName.value || "").trim();
   if (!name) return;
   el.inpName.value = "";
   await updateState((s) => {
     s.waiting.push({ id: uid("w"), name, createdAt: nowMs() });
   });
 }
+bindTap(el.btnAdd, addWaiting);
+el.inpName.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") addWaiting();
+});
 
-/* -----------------------------
-   Add box
--------------------------------- */
-el.btnAddBox.addEventListener("click", async () => {
-  const label = el.inpBoxName.value.trim() || `BOX ${getAllBoxes().length + 1}`;
+/* ---------- 박스 추가 ---------- */
+bindTap(el.btnAddBox, async () => {
+  const label = (el.inpBoxName.value || "").trim() || `BOX ${getAllBoxes().length + 1}`;
   el.inpBoxName.value = "";
   await updateState((s) => {
     const b = s.boards.find(x => x.id === activeBoardId);
@@ -288,12 +230,10 @@ el.btnAddBox.addEventListener("click", async () => {
   });
 });
 
-/* -----------------------------
-   Boards
--------------------------------- */
-el.btnBoard1.addEventListener("click", () => setActiveBoard("b1"));
-el.btnBoard2.addEventListener("click", () => setActiveBoard("b2"));
-el.btnAddBoard.addEventListener("click", async () => {
+/* ---------- 배치도 ---------- */
+bindTap(el.btnBoard1, () => setActiveBoard("b1"));
+bindTap(el.btnBoard2, () => setActiveBoard("b2"));
+bindTap(el.btnAddBoard, async () => {
   const name = prompt("배치도 이름을 입력하세요", `배치도 ${state.boards.length + 1}`);
   if (!name) return;
   await updateState((s) => {
@@ -303,25 +243,20 @@ el.btnAddBoard.addEventListener("click", async () => {
   });
 });
 async function setActiveBoard(id) {
-  await updateState((s) => {
-    s.activeBoardId = id;
-  });
+  await updateState((s) => { s.activeBoardId = id; });
   selectedBoxIds.clear();
 }
 
-/* -----------------------------
-   Zoom
--------------------------------- */
+/* ---------- 줌 ---------- */
 function applyZoom() {
   el.stage.style.transform = `scale(${zoom})`;
   el.zoomLabel.textContent = `Zoom ${Math.round(zoom*100)}%`;
 }
-el.zoomIn.addEventListener("click", () => { zoom = Math.min(2.0, zoom + 0.1); applyZoom(); });
-el.zoomOut.addEventListener("click", () => { zoom = Math.max(0.5, zoom - 0.1); applyZoom(); });
-el.zoomReset.addEventListener("click", () => { zoom = 1; applyZoom(); });
+bindTap(el.zoomIn, () => { zoom = Math.min(2.0, zoom + 0.1); applyZoom(); });
+bindTap(el.zoomOut, () => { zoom = Math.max(0.5, zoom - 0.1); applyZoom(); });
+bindTap(el.zoomReset, () => { zoom = 1; applyZoom(); });
 applyZoom();
 
-/* wheel zoom (desktop) */
 el.stageWrap.addEventListener("wheel", (e) => {
   if (!e.ctrlKey) return;
   e.preventDefault();
@@ -330,10 +265,8 @@ el.stageWrap.addEventListener("wheel", (e) => {
   applyZoom();
 }, { passive:false });
 
-/* -----------------------------
-   Dialogs: text & color
--------------------------------- */
-el.btnText.addEventListener("click", () => {
+/* ---------- 다이얼로그 ---------- */
+bindTap(el.btnText, () => {
   if (selectedBoxIds.size === 0) return alert("선택된 박스가 없습니다.");
   const first = findBox([...selectedBoxIds][0]);
   el.dlgTextValue.value = first?.text || "";
@@ -345,13 +278,11 @@ el.dlgTextOk.addEventListener("click", async (e) => {
   el.dlgText.close();
   await updateState((s) => {
     const b = s.boards.find(x => x.id === activeBoardId);
-    b.boxes.forEach(box => {
-      if (selectedBoxIds.has(box.id)) box.text = value;
-    });
+    b.boxes.forEach(box => { if (selectedBoxIds.has(box.id)) box.text = value; });
   });
 });
 
-el.btnColor.addEventListener("click", () => {
+bindTap(el.btnColor, () => {
   if (selectedBoxIds.size === 0) return alert("선택된 박스가 없습니다.");
   el.dlgColor.showModal();
 });
@@ -363,14 +294,11 @@ el.dlgColor.addEventListener("click", async (e) => {
   el.dlgColor.close();
   await updateState((s) => {
     const b = s.boards.find(x => x.id === activeBoardId);
-    b.boxes.forEach(box => {
-      if (selectedBoxIds.has(box.id)) box.color = c;
-    });
+    b.boxes.forEach(box => { if (selectedBoxIds.has(box.id)) box.color = c; });
   });
 });
 
-/* delete selected boxes */
-el.btnDelete.addEventListener("click", async () => {
+bindTap(el.btnDelete, async () => {
   if (selectedBoxIds.size === 0) return alert("선택된 박스가 없습니다.");
   if (!confirm("선택한 박스를 삭제할까요?")) return;
   const ids = new Set(selectedBoxIds);
@@ -381,13 +309,35 @@ el.btnDelete.addEventListener("click", async () => {
   });
 });
 
-/* -----------------------------
-   Render lists
--------------------------------- */
+/* ---------- 배치/해제 ---------- */
+async function assignWaitingToBox(waitId, boxId) {
+  await updateState((s) => {
+    const w = s.waiting.find(x => x.id === waitId);
+    if (!w) return;
+    const b = s.boards.find(x => x.id === activeBoardId);
+    const box = b.boxes.find(x => x.id === boxId);
+    if (!box) return;
+
+    if (box.seat) {
+      s.waiting.unshift({ id: uid("w"), name: box.seat.name, createdAt: nowMs() });
+    }
+    box.seat = { id: uid("p"), name: w.name, assignedAt: nowMs() };
+    s.waiting = s.waiting.filter(x => x.id !== waitId);
+  });
+}
+async function unseatToWaiting(boxId) {
+  await updateState((s) => {
+    const b = s.boards.find(x => x.id === activeBoardId);
+    const box = b.boxes.find(x => x.id === boxId);
+    if (!box || !box.seat) return;
+    s.waiting.unshift({ id: uid("w"), name: box.seat.name, createdAt: nowMs() });
+    box.seat = null;
+  });
+}
+
+/* ---------- 렌더 ---------- */
 function refreshCounts() {
-  if (!state) return;
-  const board = getBoard();
-  const boxes = board.boxes;
+  const boxes = getAllBoxes();
   const assigned = boxes.filter(b => !!b.seat).length;
   el.cntWaiting.textContent = state.waiting.length;
   el.cntAssigned.textContent = assigned;
@@ -395,15 +345,12 @@ function refreshCounts() {
 }
 
 function renderLists() {
-  if (!state) return;
-
   // waiting
   el.waitingList.innerHTML = "";
   for (const w of state.waiting) {
     const node = document.createElement("div");
     node.className = "item";
     node.draggable = true;
-    node.dataset.waitId = w.id;
 
     node.addEventListener("dragstart", (e) => {
       e.dataTransfer.setData("text/plain", JSON.stringify({ type:"waiting", id:w.id }));
@@ -418,13 +365,11 @@ function renderLists() {
         </div>
       </div>
       <div class="itemActions">
-        <button class="btn mini ghost" data-act="remove">삭제</button>
+        <button class="btn mini ghost" type="button" data-act="remove">삭제</button>
       </div>
     `;
     node.querySelector('[data-act="remove"]').addEventListener("click", async () => {
-      await updateState((s) => {
-        s.waiting = s.waiting.filter(x => x.id !== w.id);
-      });
+      await updateState((s) => { s.waiting = s.waiting.filter(x => x.id !== w.id); });
     });
     el.waitingList.appendChild(node);
   }
@@ -451,16 +396,9 @@ function renderLists() {
           </div>
         </div>
         <div class="itemActions">
-          <button class="btn mini ghost" data-act="goto">이동</button>
-          <button class="btn mini" data-act="unseat">대기로</button>
+          <button class="btn mini" type="button" data-act="unseat">대기로</button>
         </div>
       `;
-      node.querySelector('[data-act="goto"]').addEventListener("click", () => {
-        selectedBoxIds.clear();
-        selectedBoxIds.add(p.boxId);
-        renderStage();
-        scrollBoxIntoView(p.boxId);
-      });
       node.querySelector('[data-act="unseat"]').addEventListener("click", async () => {
         await unseatToWaiting(p.boxId);
       });
@@ -468,11 +406,7 @@ function renderLists() {
     }
   }
 
-  refreshCounts();
-}
-
-function renderBoxList() {
-  if (!state) return;
+  // box list
   el.boxList.innerHTML = "";
   for (const box of getAllBoxes()) {
     const node = document.createElement("div");
@@ -485,11 +419,8 @@ function renderBoxList() {
           <span class="badge">${Math.round(box.x)},${Math.round(box.y)}</span>
         </div>
       </div>
-      <div class="itemActions">
-        <button class="btn mini ghost" data-act="goto">이동</button>
-      </div>
     `;
-    node.querySelector('[data-act="goto"]').addEventListener("click", () => {
+    node.addEventListener("click", () => {
       selectedBoxIds.clear();
       selectedBoxIds.add(box.id);
       renderStage();
@@ -497,37 +428,32 @@ function renderBoxList() {
     });
     el.boxList.appendChild(node);
   }
+
+  refreshCounts();
 }
 
-function renderBoardButtons() {
-  if (!state) return;
-  const b1 = state.boards.find(b => b.id === "b1");
-  const b2 = state.boards.find(b => b.id === "b2");
-  el.btnBoard1.textContent = b1?.name || "배치도 1";
-  el.btnBoard2.textContent = b2?.name || "배치도 2";
-  el.btnBoard1.classList.toggle("active", activeBoardId === "b1");
-  el.btnBoard2.classList.toggle("active", activeBoardId === "b2");
+function scrollBoxIntoView(boxId){
+  const boxEl = el.stage.querySelector(`.box[data-id="${boxId}"]`);
+  if (!boxEl) return;
+  const rect = boxEl.getBoundingClientRect();
+  const wrapRect = el.stageWrap.getBoundingClientRect();
+  el.stageWrap.scrollBy({ left: rect.left - wrapRect.left - 40, top: rect.top - wrapRect.top - 40, behavior:"smooth" });
 }
 
-/* -----------------------------
-   Render stage (boxes)
--------------------------------- */
 function renderStage() {
-  if (!state) return;
-  const boxes = getAllBoxes();
-
   el.stage.innerHTML = "";
-  for (const box of boxes) {
+  for (const box of getAllBoxes()) {
     const node = document.createElement("div");
-    node.className = "box boxColor";
+    node.className = "box";
     node.dataset.id = box.id;
     node.dataset.label = box.label;
+
     node.style.left = box.x + "px";
     node.style.top = box.y + "px";
     node.style.width = (box.w || 260) + "px";
     node.style.height = (box.h || 160) + "px";
-    node.style.borderColor = "rgba(255,255,255,.12)";
     node.style.background = `linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.22)), radial-gradient(circle at 30% 10%, ${hexToRgba(box.color, .35)}, transparent 55%)`;
+
     if (selectedBoxIds.has(box.id)) node.classList.add("sel");
 
     node.innerHTML = `
@@ -536,9 +462,6 @@ function renderStage() {
           <div>
             <div class="boxTitle">${escapeHtml(box.label)}</div>
             <div class="boxSub">${box.text ? escapeHtml(box.text) : "더블클릭: 텍스트 편집"}</div>
-          </div>
-          <div class="boxBtns">
-            <button class="iconBtn" title="선택" data-act="select">✓</button>
           </div>
         </div>
 
@@ -554,36 +477,27 @@ function renderStage() {
                   </div>
                 </div>
                 <div class="itemActions">
-                  <button class="btn mini ghost" data-act="unseat">대기로</button>
+                  <button class="btn mini ghost" type="button" data-act="unseat">대기로</button>
                 </div>
               `
-              : `
-                <div class="seatHint">여기로 대기자를 드래그해서 배치</div>
-              `
+              : `<div class="seatHint">여기로 대기자를 드래그해서 배치</div>`
           }
         </div>
       </div>
     `;
 
-    // selection click
+    // select
     node.addEventListener("click", (e) => {
       const id = box.id;
-      const isShift = e.shiftKey;
-      const isMobileSelect = selectionModeMobile;
-
-      if (isShift || isMobileSelect) {
-        // toggle
-        if (selectedBoxIds.has(id)) selectedBoxIds.delete(id);
-        else selectedBoxIds.add(id);
+      if (e.shiftKey || selectionModeMobile) {
+        selectedBoxIds.has(id) ? selectedBoxIds.delete(id) : selectedBoxIds.add(id);
       } else {
-        // single select
         selectedBoxIds.clear();
         selectedBoxIds.add(id);
       }
       renderStage();
     });
 
-    // dblclick: edit text
     node.addEventListener("dblclick", () => {
       selectedBoxIds.clear();
       selectedBoxIds.add(box.id);
@@ -593,32 +507,22 @@ function renderStage() {
 
     // drag move (pointer)
     node.addEventListener("pointerdown", (e) => {
-      // don't start drag if clicked button
-      const target = e.target;
-      if (target instanceof HTMLElement && (target.closest("button") || target.closest("[data-drop]"))) return;
-
       const id = box.id;
-
-      // if not selected, select it
-      if (!selectedBoxIds.has(id) && !e.shiftKey && !selectionModeMobile) {
+      if (!selectedBoxIds.has(id) && !(e.shiftKey || selectionModeMobile)) {
         selectedBoxIds.clear();
         selectedBoxIds.add(id);
         renderStage();
       }
 
-      // start drag
       node.setPointerCapture(e.pointerId);
-      const origin = [];
+
+      const originBoxes = [];
       for (const bid of selectedBoxIds) {
         const b = findBox(bid);
-        if (b) origin.push({ id: b.id, x: b.x, y: b.y });
+        if (b) originBoxes.push({ id: b.id, x: b.x, y: b.y });
       }
-      drag = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        originBoxes: origin
-      };
+
+      drag = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, originBoxes };
     });
 
     node.addEventListener("pointermove", (e) => {
@@ -626,7 +530,6 @@ function renderStage() {
       const dx = (e.clientX - drag.startX) / zoom;
       const dy = (e.clientY - drag.startY) / zoom;
 
-      // live move in DOM only (optimistic)
       for (const ob of drag.originBoxes) {
         const boxEl = el.stage.querySelector(`.box[data-id="${ob.id}"]`);
         if (boxEl) {
@@ -643,7 +546,6 @@ function renderStage() {
       const originBoxes = drag.originBoxes;
       drag = null;
 
-      // commit to firestore
       await updateState((s) => {
         const b = s.boards.find(x => x.id === activeBoardId);
         for (const ob of originBoxes) {
@@ -655,7 +557,7 @@ function renderStage() {
       });
     });
 
-    // drop target (seat)
+    // drop
     const seat = node.querySelector('[data-drop="seat"]');
     seat.addEventListener("dragover", (e) => e.preventDefault());
     seat.addEventListener("drop", async (e) => {
@@ -664,98 +566,48 @@ function renderStage() {
         const data = JSON.parse(e.dataTransfer.getData("text/plain"));
         if (data.type !== "waiting") return;
         await assignWaitingToBox(data.id, box.id);
-      }catch(err){}
+      }catch(_){}
     });
 
-    // unseat button
     const unseatBtn = node.querySelector('[data-act="unseat"]');
-    if (unseatBtn) {
-      unseatBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        await unseatToWaiting(box.id);
-      });
-    }
+    if (unseatBtn) unseatBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await unseatToWaiting(box.id);
+    });
 
     el.stage.appendChild(node);
   }
-
   refreshCounts();
 }
 
-/* -----------------------------
-   Assign/unseat logic
--------------------------------- */
-async function assignWaitingToBox(waitId, boxId) {
-  await updateState((s) => {
-    const w = s.waiting.find(x => x.id === waitId);
-    if (!w) return;
+/* ---------- 실시간 구독 ---------- */
+function subscribe() {
+  onSnapshot(stateRef, (snap) => {
+    if (!snap.exists()) return;
+    state = snap.data();
+    activeBoardId = state.activeBoardId || "b1";
+    el.syncLine.textContent = "연결됨";
+    el.syncBadge.textContent = "동기화됨 (Firestore)";
 
-    const b = s.boards.find(x => x.id === activeBoardId);
-    const box = b.boxes.find(x => x.id === boxId);
-    if (!box) return;
+    renderLists();
+    renderStage();
 
-    // if seat occupied, move occupied back to waiting
-    if (box.seat) {
-      s.waiting.unshift({
-        id: uid("w"),
-        name: box.seat.name,
-        createdAt: nowMs()
-      });
-    }
-
-    // assign
-    box.seat = { id: uid("p"), name: w.name, assignedAt: nowMs() };
-    // remove from waiting
-    s.waiting = s.waiting.filter(x => x.id !== waitId);
+    el.btnBoard1.classList.toggle("active", activeBoardId === "b1");
+    el.btnBoard2.classList.toggle("active", activeBoardId === "b2");
+  }, (err) => {
+    console.error(err);
+    el.syncLine.textContent = "연결 오류";
+    el.syncBadge.textContent = "동기화 실패";
   });
 }
 
-async function unseatToWaiting(boxId) {
-  await updateState((s) => {
-    const b = s.boards.find(x => x.id === activeBoardId);
-    const box = b.boxes.find(x => x.id === boxId);
-    if (!box || !box.seat) return;
+/* ---------- 타이머 표시 갱신 ---------- */
+setInterval(() => {
+  if (!state) return;
+  renderLists();
+  renderStage();
+}, 1000);
 
-    s.waiting.unshift({
-      id: uid("w"),
-      name: box.seat.name,
-      createdAt: nowMs()
-    });
-    box.seat = null;
-  });
-}
-
-/* -----------------------------
-   Utilities
--------------------------------- */
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-function escapeHtml(str){
-  return String(str)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function hexToRgba(hex, a=1){
-  const h = hex.replace("#","");
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-function scrollBoxIntoView(boxId){
-  const elBox = el.stage.querySelector(`.box[data-id="${boxId}"]`);
-  if (!elBox) return;
-  const rect = elBox.getBoundingClientRect();
-  const wrapRect = el.stageWrap.getBoundingClientRect();
-  const dx = rect.left - wrapRect.left - 40;
-  const dy = rect.top - wrapRect.top - 40;
-  el.stageWrap.scrollBy({ left: dx, top: dy, behavior: "smooth" });
-}
-
-/* -----------------------------
-   Kickoff
--------------------------------- */
+/* ---------- 시작 ---------- */
 await ensureState();
 subscribe();

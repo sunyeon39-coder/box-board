@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Box Board (GitHub Pages + Firestore)</title>
+  <title>Box Board</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -24,8 +24,8 @@
     </div>
 
     <div class="topActions">
-      <button class="btn ghost" id="btnTogglePanel">목록 닫기</button>
-      <button class="btn" id="btnSelectionMode">선택모드: OFF</button>
+      <button class="btn ghost" id="btnTogglePanel" type="button">목록 닫기</button>
+      <button class="btn" id="btnSelectionMode" type="button">선택모드: OFF</button>
     </div>
   </header>
 
@@ -35,9 +35,9 @@
       <div class="panelHead">
         <div class="panelTitle">목록</div>
         <div class="panelTabs" role="tablist">
-          <button class="tab active" data-tab="waiting">대기</button>
-          <button class="tab" data-tab="assigned">배치</button>
-          <button class="tab" data-tab="boxes">박스(목록)</button>
+          <button class="tab active" type="button" data-tab="waiting">대기</button>
+          <button class="tab" type="button" data-tab="assigned">배치</button>
+          <button class="tab" type="button" data-tab="boxes">박스(목록)</button>
         </div>
       </div>
 
@@ -45,17 +45,14 @@
       <div class="panelBody tabPane active" data-pane="waiting">
         <div class="row">
           <input id="inpName" class="input" placeholder="이름 입력 (Enter로 추가)" autocomplete="off" />
-          <button class="btn" id="btnAdd">추가</button>
+          <button class="btn" id="btnAdd" type="button">추가</button>
         </div>
-
         <div class="list" id="waitingList"></div>
       </div>
 
       <!-- ASSIGNED -->
       <div class="panelBody tabPane" data-pane="assigned">
-        <div class="hint">
-          배치된 사람 목록 (박스에서 더블클릭하면 대기로 이동)
-        </div>
+        <div class="hint">배치된 사람 목록</div>
         <div class="list" id="assignedList"></div>
       </div>
 
@@ -63,7 +60,7 @@
       <div class="panelBody tabPane" data-pane="boxes">
         <div class="row">
           <input id="inpBoxName" class="input" placeholder="박스 이름(예: BOX 7)" autocomplete="off" />
-          <button class="btn ghost" id="btnAddBox">박스 추가</button>
+          <button class="btn ghost" id="btnAddBox" type="button">박스 추가</button>
         </div>
         <div class="hint">박스 목록에서 클릭하면 해당 박스로 이동</div>
         <div class="list" id="boxList"></div>
@@ -75,35 +72,33 @@
       <div class="boardHead">
         <div class="boardTitle">
           <div class="h1">테이블 배치도</div>
-          <div class="h2">박스 드래그 이동 / PC: Shift+클릭 멀티선택 / 모바일: 선택모드 ON에서 탭으로 선택</div>
+          <div class="h2">박스 드래그 이동 / PC: Shift+클릭 멀티선택 / 모바일: 선택모드 ON</div>
         </div>
 
         <div class="boardControls">
           <div class="seg">
-            <button class="chip active" id="btnBoard1">배치도 1</button>
-            <button class="chip" id="btnBoard2">배치도 2</button>
-            <button class="chip ghost" id="btnAddBoard">+ 배치도 추가</button>
+            <button class="chip active" id="btnBoard1" type="button">배치도 1</button>
+            <button class="chip" id="btnBoard2" type="button">배치도 2</button>
+            <button class="chip ghost" id="btnAddBoard" type="button">+ 배치도 추가</button>
           </div>
 
           <div class="seg">
-            <button class="chip" id="zoomOut">-</button>
+            <button class="chip" id="zoomOut" type="button">-</button>
             <div class="chip mono" id="zoomLabel">Zoom 100%</div>
-            <button class="chip" id="zoomIn">+</button>
-            <button class="chip ghost" id="zoomReset">Reset</button>
+            <button class="chip" id="zoomIn" type="button">+</button>
+            <button class="chip ghost" id="zoomReset" type="button">Reset</button>
           </div>
 
           <div class="seg">
-            <button class="chip ghost" id="btnColor">선택 박스 컬러</button>
-            <button class="chip" id="btnText">선택 박스 텍스트</button>
-            <button class="chip danger" id="btnDelete">선택 삭제</button>
+            <button class="chip ghost" id="btnColor" type="button">선택 박스 컬러</button>
+            <button class="chip" id="btnText" type="button">선택 박스 텍스트</button>
+            <button class="chip danger" id="btnDelete" type="button">선택 삭제</button>
           </div>
         </div>
       </div>
 
       <div class="stageWrap" id="stageWrap">
-        <div class="stage" id="stage">
-          <!-- boxes rendered here -->
-        </div>
+        <div class="stage" id="stage"></div>
       </div>
     </section>
   </main>
@@ -114,8 +109,8 @@
       <div class="dlgTitle">선택 박스 텍스트</div>
       <textarea id="dlgTextValue" class="textarea" rows="5" placeholder="표시할 텍스트"></textarea>
       <div class="dlgActions">
-        <button class="btn ghost" value="cancel">취소</button>
-        <button class="btn" id="dlgTextOk" value="ok">적용</button>
+        <button class="btn ghost" value="cancel" type="submit">취소</button>
+        <button class="btn" id="dlgTextOk" value="ok" type="submit">적용</button>
       </div>
     </form>
   </dialog>
@@ -124,23 +119,21 @@
     <form method="dialog" class="dlgInner">
       <div class="dlgTitle">선택 박스 컬러</div>
       <div class="palette">
-        <button class="sw" data-c="#4aa3ff" style="background:#4aa3ff"></button>
-        <button class="sw" data-c="#38d39f" style="background:#38d39f"></button>
-        <button class="sw" data-c="#ffd166" style="background:#ffd166"></button>
-        <button class="sw" data-c="#ff5c7c" style="background:#ff5c7c"></button>
-        <button class="sw" data-c="#a9b0d6" style="background:#a9b0d6"></button>
-        <button class="sw" data-c="#6c5ce7" style="background:#6c5ce7"></button>
-        <button class="sw" data-c="#00c2ff" style="background:#00c2ff"></button>
-        <button class="sw" data-c="#2ecc71" style="background:#2ecc71"></button>
+        <button class="sw" type="button" data-c="#4aa3ff" style="background:#4aa3ff"></button>
+        <button class="sw" type="button" data-c="#38d39f" style="background:#38d39f"></button>
+        <button class="sw" type="button" data-c="#ffd166" style="background:#ffd166"></button>
+        <button class="sw" type="button" data-c="#ff5c7c" style="background:#ff5c7c"></button>
+        <button class="sw" type="button" data-c="#a9b0d6" style="background:#a9b0d6"></button>
+        <button class="sw" type="button" data-c="#6c5ce7" style="background:#6c5ce7"></button>
+        <button class="sw" type="button" data-c="#00c2ff" style="background:#00c2ff"></button>
+        <button class="sw" type="button" data-c="#2ecc71" style="background:#2ecc71"></button>
       </div>
       <div class="dlgActions">
-        <button class="btn ghost" value="cancel">닫기</button>
+        <button class="btn ghost" value="cancel" type="submit">닫기</button>
       </div>
     </form>
   </dialog>
 
-  <!-- Firebase (modular v9) -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
-

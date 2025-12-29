@@ -29,11 +29,14 @@
     </div>
   </header>
 
-  <main class="app">
+  <main class="app" id="appRoot">
     <!-- LEFT PANEL -->
     <aside class="panel" id="leftPanel">
       <div class="panelHead">
-        <div class="panelTitle">목록</div>
+        <div class="panelTitle">
+          <span>목록</span>
+          <span class="panelHint">Tab: 패널 토글</span>
+        </div>
         <div class="panelTabs">
           <button class="tab active" type="button" data-tab="waiting">대기</button>
           <button class="tab" type="button" data-tab="assigned">배치</button>
@@ -41,19 +44,23 @@
         </div>
       </div>
 
+      <!-- WAITING -->
       <div class="panelBody tabPane active" data-pane="waiting">
         <div class="row">
           <input id="inpName" class="input" placeholder="이름 입력 (Enter로 추가)" autocomplete="off" />
           <button class="btn" id="btnAdd" type="button">추가</button>
         </div>
+        <div class="hint">대기자를 박스로 드래그해서 배치하세요.</div>
         <div class="list" id="waitingList"></div>
       </div>
 
+      <!-- ASSIGNED -->
       <div class="panelBody tabPane" data-pane="assigned">
         <div class="hint">배치된 사람 목록</div>
         <div class="list" id="assignedList"></div>
       </div>
 
+      <!-- BOX LIST -->
       <div class="panelBody tabPane" data-pane="boxes">
         <div class="row">
           <input id="inpBoxName" class="input" placeholder="박스 이름(예: BOX 7)" autocomplete="off" />
@@ -70,7 +77,10 @@
         <div class="boardHeadTop">
           <div class="boardTitle">
             <div class="h1">테이블 배치도</div>
-            <div class="h2">드래그 이동 / PC: Shift 멀티선택 / 모바일: 선택모드 ON</div>
+            <div class="h2">
+              박스 드래그 이동 / PC: Shift+클릭 멀티선택 / 모바일: 선택모드 ON
+              · Esc: 선택해제 · Delete: 삭제
+            </div>
           </div>
 
           <div class="boardQuick">
@@ -80,7 +90,6 @@
           </div>
         </div>
 
-        <!-- ✅ 원래 느낌: 컨트롤을 한 줄에 정렬 -->
         <div class="boardControlsRow">
           <div class="seg">
             <button class="chip" id="zoomOut" type="button">-</button>

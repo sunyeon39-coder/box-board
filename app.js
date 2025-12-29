@@ -1,5 +1,5 @@
 /* =========================================================
-   Box Board v1.4.6 - app.js (FULL)
+   Box Board v1.4.9 - app.js (FULL)
    - ✅ Fix: Pointer Events로 박스 이동/리사이즈 (모바일 드래그 OK)
    - Boards Tabs + Reorder + Delete Rule A + Box Resize
    - Snap to Grid (Alt = temporary disable)
@@ -1121,9 +1121,9 @@ function makeDraggable(el, box){
     if (raf){ cancelAnimationFrame(raf); raf = 0; }
     el.style.transform = "";
 
-    const z = state.zoom || 1;
-    const dx = lastDX / z;
-    const dy = lastDY / z;
+    // lastDX/lastDY are already in local coords (zoom-adjusted)
+    const dx = lastDX;
+    const dy = lastDY;
 
     box.x = ox + dx;
     box.y = oy + dy;

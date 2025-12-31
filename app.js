@@ -1584,19 +1584,16 @@ function renderBoard(){
     };
     const clearDrop = ()=> el.classList.remove("drop-over");
 
-    if (seatEl) {
-  seatEl.addEventListener("dragover", allowDrop);
-  seatEl.addEventListener("dragenter", allowDrop);
-  seatEl.addEventListener("dragleave", clearDrop);
-  seatEl.addEventListener("drop", (e)=>{
-    e.preventDefault();
-    clearDrop();
-    const pid = (e.dataTransfer?.getData(DRAG_MIME) || e.dataTransfer?.getData("text/plain") || "").trim();
-    if (!pid) return;
-    seatPersonToBox(pid, board.id, box.id);
-  });
-}
-
+    seatEl.addEventListener("dragover", allowDrop);
+    seatEl.addEventListener("dragenter", allowDrop);
+    seatEl.addEventListener("dragleave", clearDrop);
+    seatEl.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      clearDrop();
+      const pid = (e.dataTransfer?.getData(DRAG_MIME) || e.dataTransfer?.getData("text/plain") || "").trim();
+      if (!pid) return;
+      seatPersonToBox(pid, board.id, box.id);
+    });
 
     // 모바일(pointer drag) 드롭도 지원: 좌석 위로 오면 하이라이트만
     seatEl.addEventListener("pointerenter", ()=>{

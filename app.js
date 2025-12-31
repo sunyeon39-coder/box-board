@@ -232,6 +232,36 @@ function assignWaiterToBox(waiterId, boxId){
   saveState();
 }
 
+
+function moveAssignedToBox(fromBoxId, toBoxId){
+  if(fromBoxId === toBoxId) return;
+  const from = getBoxById(fromBoxId);
+  const to = getBoxById(toBoxId);
+  if(!from || !to || !from.assigned) return;
+
+  if(to.assigned){
+    state.waiters.unshift({ id: uid("w"), name: to.assigned.name, createdAt: to.assigned.assignedAt ?? now() });
+  }
+
+  to.assigned = { id: uid("a"), name: from.assigned.name, assignedAt: now() };
+  from.assigned = null;
+
+  render();
+  saveState();
+}
+
+function editAssignedName(boxId){
+  const b = getBoxById(boxId);
+  if(!b || !b.assigned) return;
+  const next = prompt("이름 수정", b.assigned.name || "");
+  if(next == null) return;
+  const v = (next || "").trim();
+  if(!v) return;
+  b.assigned.name = v;
+  render();
+  saveState();
+}
+
 function unassignBoxToWaiting(boxId){
   const b = getBoxById(boxId);
   if(!b || !b.assigned) return;
@@ -444,9 +474,9 @@ function renderWaiters(){
     el.dataset.waiterId = w.id;
 
     el.innerHTML = `
-      <div class="left">
+      <div class="left rowInline">
         <div class="name">${escapeHtml(w.name)}</div>
-        <div class="meta">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
+        <div class="timeInline">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
       </div>
       <div class="pill warn">드래그</div>
     `;
@@ -487,9 +517,9 @@ function renderAssignedList(){
     el.className = "item clickable";
     el.dataset.boxId = a.boxId;
     el.innerHTML = `
-      <div class="left">
-        <div class="name">${escapeHtml(a.name)} <span style="opacity:.75;font-weight:900">·</span> <span style="opacity:.85">${escapeHtml(a.boxName)}</span></div>
-        <div class="meta">배치 ${fmtTime(now() - a.assignedAt)}</div>
+      <div class="left rowInline">
+        <div class="name">${escapeHtml(a.name)} <span style="opacity:.85">${escapeHtml(a.boxName)}</span></div>
+        <div class="timeInline">배치 ${fmtTime(now() - a.assignedAt)}</div>
       </div>
       <div class="pill blue">이동</div>
     `;
@@ -562,7 +592,11 @@ function renderBoardBoxes(){
       </div>` : `<div class="dropHint">여기에 대기자를 드롭</div>`;
 
     const actionHtml = b.assigned
-      ? `<button class="smallBtn" data-unassign>대기로</button>`
+      ? `
+          <button class="smallBtn dragBtn" data-drag draggable="true">드래그</button>
+          <button class="smallBtn editBtn" data-edit>수정</button>
+          <button class="smallBtn danger deleteBtn" data-unassign>삭제</button>
+        `
       : `<span class="pill good">DROP</span>`;
 
     boxEl.innerHTML = `
@@ -608,6 +642,22 @@ function renderBoardBoxes(){
       });
     }
 
+    const editBtn = boxEl.querySelector("[data-edit]");
+    if(editBtn){
+      editBtn.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        editAssignedName(b.id);
+      });
+    }
+
+    const dragBtn = boxEl.querySelector("[data-drag]");
+    if(dragBtn){
+      dragBtn.addEventListener("dragstart", (e)=>{
+        e.stopPropagation();
+        try{ e.dataTransfer.setData("text/plain", `assigned:${b.id}`); }catch{}
+      });
+    }
+
     // dblclick name -> unassign
     const nameEl = boxEl.querySelector("[data-name]");
     if(nameEl){
@@ -625,6 +675,11 @@ function renderBoardBoxes(){
       e.preventDefault();
       boxEl.classList.remove("dropOver");
       const idFromDT = (()=>{ try{return e.dataTransfer.getData("text/plain");}catch{return "";} })();
+      if(idFromDT && idFromDT.startsWith("assigned:")){
+        const fromBoxId = idFromDT.split(":")[1];
+        if(fromBoxId) moveAssignedToBox(fromBoxId, b.id);
+        return;
+      }
       const wid = ui.dragWaiterId || idFromDT;
       if(wid) assignWaiterToBox(wid, b.id);
     });
@@ -783,21 +838,3 @@ applyGrid();
 render();
 setInterval(tickTimers, 500);
 window.addEventListener("beforeunload", ()=>{ try{ saveState(); }catch{} });
-
-
-// === Slot action buttons ===
-document.addEventListener('click', (e)=>{
-  if(e.target.classList.contains('deleteBtn')){
-    const boxEl = e.target.closest('.box');
-    if(boxEl){
-      boxEl.dispatchEvent(new CustomEvent('unassign'));
-    }
-  }
-  if(e.target.classList.contains('editBtn')){
-    const name = prompt('이름 수정');
-    if(name){
-      const slotName = e.target.closest('.slot')?.querySelector('.slotName');
-      if(slotName) slotName.textContent = name;
-    }
-  }
-});

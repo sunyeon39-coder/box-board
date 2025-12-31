@@ -530,7 +530,6 @@ body{
   .toolbar{ display:none; }
 }
 
-
 /* === Compact list & inline timer === */
 .rowInline{
   display:flex;
@@ -545,17 +544,24 @@ body{
   border:1px solid rgba(56,211,159,.35);
   background: rgba(56,211,159,.12);
   white-space:nowrap;
+  flex: 0 0 auto;
 }
 
-/* Compact sizing */
+/* Compact sizing (overall height tighter) */
 .item{ padding:8px 10px; }
+.item .left{ gap:0; }
+.item .meta{ display:none; } /* 기존 2줄 메타 숨김 */
 .slot{ padding:10px; min-height:auto; }
 .slotName{ font-size:16px; }
+.slotTime{ font-size:12px; }
 .box{ height:auto; }
 
+/* Slot action buttons: Drag | Edit | Delete */
 .slotActions{
   display:flex;
   gap:6px;
+  align-items:center;
+  justify-content:flex-end;
 }
 .smallBtn{
   padding:6px 8px;

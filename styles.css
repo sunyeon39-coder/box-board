@@ -23,6 +23,9 @@ body{
   overflow:hidden;
 }
 
+/* During drag/resize, show grabbing cursor, but keep UI clickable */
+body.bb-interacting{ cursor: grabbing; }
+
 /* ===== Toolbar ===== */
 #toolbar{
   position:sticky;

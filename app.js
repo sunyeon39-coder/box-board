@@ -1,4 +1,4 @@
-const VERSION = '1.5.4';
+const VERSION = '1.5.7';
 /* =========================================================
    Box Board v1.4.9 - app.js (FULL)
    - ✅ Fix: Pointer Events로 박스 이동/리사이즈 (모바일 드래그 OK)
@@ -19,6 +19,51 @@ const state = {
   snapEnabled: true,
   gridSize: 16,
   search: { query: "", matches: [], idx: -1 },
+};
+
+/* =========================================================
+   ✅ Global interaction guard
+   - Fix: "버튼이 안눌림" (pointer capture stuck / drag state stuck)
+   - Any pointerup/blur anywhere will hard-cancel dragging/resizing
+========================================================= */
+const Interaction = {
+  active: null, // { kind, pointerId, finish, cleanup }
+  ensureInit(){
+    if (Interaction._inited) return;
+    Interaction._inited = true;
+
+    const hardCancel = (ev)=>{
+      const a = Interaction.active;
+      if (!a) return;
+      // If pointerId is known, match it when possible
+      if (ev && ev.pointerId != null && a.pointerId != null && ev.pointerId !== a.pointerId) return;
+      try{ a.cleanup?.(); }catch(_){ }
+      try{ a.finish?.(ev || { altKey:false }); }catch(_){ }
+      Interaction.active = null;
+      document.body.classList.remove('bb-interacting');
+    };
+
+    window.addEventListener('pointerup', hardCancel, true);
+    window.addEventListener('pointercancel', hardCancel, true);
+    window.addEventListener('blur', ()=>hardCancel(null), true);
+    window.addEventListener('visibilitychange', ()=>{ if (document.hidden) hardCancel(null); }, true);
+    // If user clicks UI buttons while a drag is stuck, free it first
+    document.addEventListener('pointerdown', (e)=>{
+      if (!Interaction.active) return;
+      if (e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label')){
+        hardCancel(e);
+      }
+    }, true);
+  },
+  start(active){
+    Interaction.ensureInit();
+    Interaction.active = active;
+    document.body.classList.add('bb-interacting');
+  },
+  stop(){
+    Interaction.active = null;
+    document.body.classList.remove('bb-interacting');
+  }
 };
 
 /* =========================================================
@@ -1223,6 +1268,24 @@ function makeDraggable(el, box){
     dragging = true;
     el.classList.add("dragging");
 
+    // Register global guard (prevents stuck pointer capture that blocks UI clicks)
+    Interaction.start({
+      kind: 'drag',
+      pointerId: pid,
+      cleanup: ()=>{
+        try{ el.removeEventListener('pointermove', onMove); }catch(_){ }
+        try{ el.style.willChange = ""; }catch(_){ }
+        try{ el.classList.remove('dragging'); }catch(_){ }
+        try{ el.releasePointerCapture(pid); }catch(_){ }
+        dragging = false;
+      },
+      finish: (ev)=>{
+        try{ el.style.willChange = ""; }catch(_){ }
+        try{ el.removeEventListener('pointermove', onMove); }catch(_){ }
+        finish(ev||e);
+      }
+    });
+
     // 포인터 캡쳐(손가락이 박스 밖으로 나가도 계속 드래그)
     el.setPointerCapture(pid);
 
@@ -1242,11 +1305,13 @@ function makeDraggable(el, box){
     el.style.willChange = "";
     el.removeEventListener("pointermove", onMove);
     finish(e);
+    Interaction.stop();
   });
   el.addEventListener("pointercancel", (e)=>{
     el.style.willChange = "";
     el.removeEventListener("pointermove", onMove);
     finish(e);
+    Interaction.stop();
   });
 }
 
@@ -1322,6 +1387,23 @@ function makeResizable(el, box){
 
     pid = e.pointerId;
     resizing = true;
+
+    Interaction.start({
+      kind:'resize',
+      pointerId: pid,
+      cleanup: ()=>{
+        try{ handle.removeEventListener('pointermove', onMove); }catch(_){ }
+        try{ el.style.willChange = ""; }catch(_){ }
+        try{ handle.releasePointerCapture(pid); }catch(_){ }
+        resizing = false;
+      },
+      finish: (ev)=>{
+        try{ el.style.willChange = ""; }catch(_){ }
+        try{ handle.removeEventListener('pointermove', onMove); }catch(_){ }
+        finish(ev||e);
+      }
+    });
+
     handle.setPointerCapture(pid);
 
     startX = e.clientX;
@@ -1340,11 +1422,13 @@ function makeResizable(el, box){
     el.style.willChange = "";
     handle.removeEventListener("pointermove", onMove);
     finish(e);
+    Interaction.stop();
   });
   handle.addEventListener("pointercancel", (e)=>{
     el.style.willChange = "";
     handle.removeEventListener("pointermove", onMove);
     finish(e);
+    Interaction.stop();
   });
 }
 

@@ -470,15 +470,19 @@ function renderWaiters(){
   for(const w of items){
     const el = document.createElement("div");
     el.className = "item";
+    el.dataset.id = w.id;
     el.draggable = true;
     el.dataset.waiterId = w.id;
 
     el.innerHTML = `
-      <div class="left rowInline">
-        <div class="name">${escapeHtml(w.name)}</div>
-        <div class="timeInline">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
+      <div class="waitLine">
+        <div class="waitName">${escapeHtml(w.name)}</div>
+        <div class="waitTime">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
       </div>
-      <div class="pill warn">드래그</div>
+      <div class="itemActions">
+        <button class="itemBtn" data-wedit>수정</button>
+        <button class="itemBtn danger" data-wdel>삭제</button>
+      </div>
     `;
 
     el.addEventListener("dragstart", (e)=>{
@@ -838,3 +842,45 @@ applyGrid();
 render();
 setInterval(tickTimers, 500);
 window.addEventListener("beforeunload", ()=>{ try{ saveState(); }catch{} });
+
+// === Wait list action buttons (edit/delete) ===
+let __waitActionsBound = false;
+function bindWaitActions(){
+  if(__waitActionsBound) return;
+  __waitActionsBound = true;
+
+  document.addEventListener("click", (e)=>{
+    const btn = e.target;
+    if(!(btn instanceof HTMLElement)) return;
+
+    if(btn.hasAttribute("data-wedit") || btn.hasAttribute("data-wdel")){
+      e.preventDefault();
+      e.stopPropagation();
+
+      const item = btn.closest(".item");
+      const wid = item?.getAttribute("data-id");
+      if(!wid) return;
+
+      if(btn.hasAttribute("data-wdel")){
+        const idx = state.waiters.findIndex(w => w.id === wid);
+        if(idx >= 0) state.waiters.splice(idx, 1);
+        render();
+        saveState();
+        return;
+      }
+
+      if(btn.hasAttribute("data-wedit")){
+        const w = state.waiters.find(w => w.id === wid);
+        if(!w) return;
+        const next = prompt("이름 수정", w.name || "");
+        if(next == null) return;
+        const v = (next || "").trim();
+        if(!v) return;
+        w.name = v;
+        render();
+        saveState();
+      }
+    }
+  });
+}
+bindWaitActions();

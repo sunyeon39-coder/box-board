@@ -530,33 +530,63 @@ body{
   .toolbar{ display:none; }
 }
 
-/* === Compact list & inline timer === */
-.rowInline{
+
+/* === Wait/Assigned list: single-line row + actions === */
+.item{
+  padding:10px 12px;
+  align-items:center;
+}
+.item .meta{ display:none; }
+
+.waitLine{
   display:flex;
   align-items:center;
   gap:10px;
   min-width:0;
+  flex:1;
 }
-.timeInline{
+.waitName{
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.waitTime{
   font-size:12px;
-  padding:4px 8px;
+  padding:4px 10px;
   border-radius:999px;
   border:1px solid rgba(56,211,159,.35);
   background: rgba(56,211,159,.12);
   white-space:nowrap;
-  flex: 0 0 auto;
+  flex:0 0 auto;
 }
 
-/* Compact sizing (overall height tighter) */
-.item{ padding:8px 10px; }
-.item .left{ gap:0; }
-.item .meta{ display:none; } /* 기존 2줄 메타 숨김 */
-.slot{ padding:10px; min-height:auto; }
-.slotName{ font-size:16px; }
-.slotTime{ font-size:12px; }
-.box{ height:auto; }
+.itemActions{
+  display:flex;
+  gap:6px;
+  flex:0 0 auto;
+}
+.itemBtn{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(233,236,255,.92);
+  cursor:pointer;
+  font-weight:800;
+  font-size:12px;
+}
+.itemBtn:hover{ background: rgba(255,255,255,.10); }
+.itemBtn.danger{
+  border-color: rgba(255,92,124,.35);
+  background: rgba(255,92,124,.12);
+}
 
-/* Slot action buttons: Drag | Edit | Delete */
+/* Remove any leftover drag pill/button in lists */
+.item .pill.warn{ display:none !important; }
+
+
+/* === Board slot action buttons (Drag | Edit | Delete) === */
 .slotActions{
   display:flex;
   gap:6px;

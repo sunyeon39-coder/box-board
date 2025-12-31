@@ -529,3 +529,36 @@ body{
   .boardWrap{order:1; height: 60vh;}
   .toolbar{ display:none; }
 }
+
+
+/* === Compact list & inline timer === */
+.rowInline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.timeInline{
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(56,211,159,.35);
+  background: rgba(56,211,159,.12);
+  white-space:nowrap;
+}
+
+/* Compact sizing */
+.item{ padding:8px 10px; }
+.slot{ padding:10px; min-height:auto; }
+.slotName{ font-size:16px; }
+.box{ height:auto; }
+
+.slotActions{
+  display:flex;
+  gap:6px;
+}
+.smallBtn{
+  padding:6px 8px;
+  font-size:12px;
+  border-radius:10px;
+}

@@ -783,3 +783,21 @@ applyGrid();
 render();
 setInterval(tickTimers, 500);
 window.addEventListener("beforeunload", ()=>{ try{ saveState(); }catch{} });
+
+
+// === Slot action buttons ===
+document.addEventListener('click', (e)=>{
+  if(e.target.classList.contains('deleteBtn')){
+    const boxEl = e.target.closest('.box');
+    if(boxEl){
+      boxEl.dispatchEvent(new CustomEvent('unassign'));
+    }
+  }
+  if(e.target.classList.contains('editBtn')){
+    const name = prompt('이름 수정');
+    if(name){
+      const slotName = e.target.closest('.slot')?.querySelector('.slotName');
+      if(slotName) slotName.textContent = name;
+    }
+  }
+});

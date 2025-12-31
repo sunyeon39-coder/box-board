@@ -936,16 +936,18 @@ function renderLists(){
         })();
         row.innerHTML = `
           <div class="left">
-            <div class="name">${escapeHtml(p.name)}</div>
-            <div class="meta">
-              <span class="pill good">배치됨</span>
-              <span class="pill" data-assignedelapsed>--:--:--</span>
-              <span class="pill blue">${escapeHtml(boxTitle)}</span>
+            <div class="name-line">
+              <div class="name">${escapeHtml(p.name)}</div>
+              <div class="meta">
+                <span class="tag good slim">배치</span>
+                <span class="tag time slim" data-assignedelapsed>--:--:--</span>
+                <span class="tag blue slim">${escapeHtml(boxTitle)}</span>
+              </div>
             </div>
           </div>
           <div class="actions">
-            <button data-act="goto">이동</button>
-            <button class="danger" data-act="unseat">대기</button>
+            <button class="slimbtn" data-act="goto">이동</button>
+            <button class="danger slimbtn" data-act="unseat">대기</button>
           </div>
         `;
         row.querySelector('[data-act="goto"]').addEventListener("click", ()=>{
@@ -972,28 +974,79 @@ function renderLists(){
     bWrap.innerHTML = "";
     board.boxes.forEach(box=>{
       const seated = box.seat?.personId ? state.people.find(p=>p.id===box.seat.personId) : null;
+
       const card = document.createElement("div");
       card.className = "box-card";
+
       card.innerHTML = `
-        <div>
-          <b>${escapeHtml(box.title)}</b>
-          <div><span>${seated ? `좌석: ${escapeHtml(seated.name)}` : "좌석: 비어있음"}</span></div>
+        <div class="box-card-left" title="클릭: 박스 선택/포커스">
+          <div class="box-card-titleline">
+            <b class="box-title" data-title-text>${escapeHtml(box.title)}</b>
+            <input class="box-title-edit" data-title-input type="text" value="${escapeAttr(box.title)}" style="display:none" />
+          </div>
+          <div><span>${seated ? `${escapeHtml(seated.name)} · 배치중` : "좌석: 비어있음"}</span></div>
         </div>
         <div class="btns">
-          <button data-act="select" class="blue">선택</button>
-          <button data-act="clear">비우기</button>
+          <button class="icon-btn" data-act="edit" title="이름 수정">✎</button>
+          <button class="icon-btn danger" data-act="delete" title="박스 삭제">×</button>
         </div>
       `;
-      card.querySelector('[data-act="select"]').addEventListener("click", ()=>{
+
+      const left = card.querySelector('.box-card-left');
+      const titleText = card.querySelector('[data-title-text]');
+      const inp = card.querySelector('[data-title-input]');
+      const btnEdit = card.querySelector('[data-act="edit"]');
+      const btnDelete = card.querySelector('[data-act="delete"]');
+
+      // click left => select + focus
+      left.addEventListener('click', ()=>{
         state.selectedBoxIds.clear();
         state.selectedBoxIds.add(box.id);
         renderAll();
         focusBox(box.id);
       });
-      card.querySelector('[data-act="clear"]').addEventListener("click", ()=>{
+
+      const setEditMode = (on)=>{
+        if (!inp || !titleText) return;
+        inp.style.display = on ? '' : 'none';
+        titleText.style.display = on ? 'none' : '';
+        if (on){
+          inp.value = box.title || '';
+          inp.focus();
+          inp.select();
+        }
+      };
+
+      const commitRename = ()=>{
+        const next = (inp?.value || '').trim();
+        if (!next) { setEditMode(false); return; }
+        box.title = next;
+        setEditMode(false);
+        renderAll();
+      };
+
+      btnEdit.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const editing = inp && inp.style.display !== 'none';
+        if (editing){ commitRename(); }
+        else setEditMode(true);
+      });
+
+      inp?.addEventListener('keydown', (ev)=>{
+        if (ev.key === 'Enter'){ ev.preventDefault(); commitRename(); }
+        if (ev.key === 'Escape'){ ev.preventDefault(); setEditMode(false); }
+      });
+      inp?.addEventListener('blur', ()=>{ commitRename(); });
+
+      btnDelete.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        // 좌석이 있으면 먼저 대기로 복귀
         if (box.seat?.personId) unseatBox(board.id, box.id);
+        board.boxes = board.boxes.filter(b=>b.id!==box.id);
+        state.selectedBoxIds.delete(box.id);
         renderAll();
       });
+
       bWrap.appendChild(card);
     });
   }
@@ -1329,95 +1382,21 @@ function renderBoard(){
       </div>
 
       <div class="body">
-        <div class="seat ${seatIsEmpty ? "empty" : "occupied"}" data-seat>
-          <div class="seat-top">
-            <div class="who" title="${seatIsEmpty ? "" : escapeHtml(seatedPerson.name)}" style="color:${box.text.nameColor};">
-              ${seatIsEmpty ? "대기자 드래그해서 넣기" : escapeHtml(seatedPerson.name)}
-            </div>
+        <div class="seat seat-grid ${seatIsEmpty ? "empty" : "occupied"}" data-seat ${seatIsEmpty ? "" : `data-person-id="${seatedPerson.id}"`}>
+          <div class="sg-name" title="${seatIsEmpty ? "" : escapeHtml(seatedPerson.name)}" style="color:${box.text.nameColor};">
+            ${seatIsEmpty ? "이름" : escapeHtml(seatedPerson.name)}
           </div>
-          <div class="seat-bottom">
+          <div class="sg-bottom">
             <span class="pill slim ${seatIsEmpty ? "blue" : "good"}" data-seatelapsed>--:--:--</span>
-            ${seatIsEmpty ? `<span class="pill slim">DROP</span>` : ``}
-            ${seatIsEmpty ? `` : `<button class="pill slimbtn" data-seat-to-wait>대기로</button>`}
+            ${seatIsEmpty ? `<span class="pill slim">DROP</span>` : `<button class="pill slimbtn" data-seat-to-wait>대기로</button>`}
           </div>
         </div>
- </div>
+      </div>
 
       <div class="resize-handle" title="크기 조절"></div>
     `;
 
     
-    // ✅ 박스 이름(타이틀) 수정: 워터마크 더블클릭/더블탭
-    const titleEl = el.querySelector(".wm-title");
-    if (titleEl){
-      titleEl.addEventListener("dblclick", (ev)=>{
-        ev.stopPropagation();
-        const next = prompt("박스 이름을 입력하세요", box.title || "");
-        if (next === null) return;
-        const t = (next || "").trim();
-        if (!t) return;
-        box.title = t;
-        renderBoard(); // 즉시 반영
-      });
-
-      // 모바일 더블탭 (300ms)
-      let _lastTap = 0;
-      titleEl.addEventListener("pointerup", (ev)=>{
-        if (ev.pointerType === "mouse") return;
-        const t = Date.now();
-        if (t - _lastTap < 320){
-          _lastTap = 0;
-          ev.stopPropagation();
-          const next = prompt("박스 이름을 입력하세요", box.title || "");
-          if (next === null) return;
-          const s = (next || "").trim();
-          if (!s) return;
-          box.title = s;
-          renderBoard();
-        }else{
-          _lastTap = t;
-        }
-      });
-    }
-// 선택(Shift+클릭 멀티)
-    el.addEventListener("pointerdown", (e)=>{
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest(".resize-handle")) return;
-      if (e.target.closest("button, input, select, textarea, a, label")) return;
-
-      const id = box.id;
-      if (e.shiftKey){
-        if (state.selectedBoxIds.has(id)) state.selectedBoxIds.delete(id);
-        else state.selectedBoxIds.add(id);
-      } else {
-        if (!state.selectedBoxIds.has(id) || state.selectedBoxIds.size > 1){
-          state.selectedBoxIds.clear();
-          state.selectedBoxIds.add(id);
-        }
-      }
-      renderBoardSelectionOnly();
-    });
-
-    // 좌석 더블클릭: 대기로 이동
-    const seatEl = el.querySelector("[data-seat]");
-
-    // ✅ 이름이 길 때 '종..'처럼 잘리는 문제 완화: title로 풀네임 제공(hover 툴팁)
-    const whoEl = el.querySelector(".who");
-    if (whoEl && box.seat?.personId){
-      const p = state.people.find(x=>x.id===box.seat.personId);
-      if (p) whoEl.title = p.name;
-    }
-
-    seatEl.addEventListener("dblclick", ()=>{
-      if (!box.seat?.personId) return;
-      const p = state.people.find(x=>x.id===box.seat.personId);
-      if (!p) return;
-      box.seat.personId = null;
-      box.seat.startedAt = null;
-      toWaiting(p);
-      renderAll();
-    });
-    // ✅ 박스 우상단 X(삭제)
     const closeBtn = el.querySelector("[data-close]");
     if (closeBtn){
       closeBtn.addEventListener("click", (e)=>{

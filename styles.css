@@ -199,8 +199,8 @@ button.blue:hover{background:rgba(74,163,255,.24)}
   gap:8px;
   align-items:center;
   justify-content:space-between;
-  padding:10px 10px;
-  margin-bottom:8px;
+  padding:6px 10px;
+  margin-bottom:6px;
   border:1px solid rgba(255,255,255,.08);
   background:rgba(255,255,255,.04);
   border-radius:12px;
@@ -209,7 +209,7 @@ button.blue:hover{background:rgba(74,163,255,.24)}
   display:flex; flex-direction:column; gap:4px; min-width:0;
 }
 .row .name{
-  font-weight:700; font-size:14px;
+  font-weight:800; font-size:14px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .row .meta{
@@ -232,7 +232,11 @@ button.blue:hover{background:rgba(74,163,255,.24)}
 .pill.bad{border-color:rgba(255,92,124,.35); background:rgba(255,92,124,.14); color:#ffd2db}
 
 .row .actions{display:flex; gap:6px; align-items:center}
-.row .actions button{padding:10px 12px; font-size:12px; min-height:40px}
+.row .actions button{padding:8px 10px; font-size:12px; min-height:34px}
+
+/* compact “pill row” look (like your 5th screenshot) */
+.row .meta{ gap:6px; flex-wrap:nowrap; }
+.row .pill, .row .tag{ padding:3px 10px; border-radius:999px; }
 
 .row.unassigned{border-color: rgba(255,209,102,.35); background: rgba(255,209,102,.12);}
 .row.inplay{border-color: rgba(56,211,159,.35); background: rgba(56,211,159,.12);}
@@ -454,9 +458,11 @@ button.blue:hover{background:rgba(74,163,255,.24)}
 /* 워터마크 */
 .wm-title{
   position:absolute;
-  left:12px;
-  top:10px;
-  right:12px;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 24px);
+  text-align:center;
   font-weight:900;
   letter-spacing:.6px;
   opacity: var(--wmOpacity, .18);
@@ -489,7 +495,7 @@ button.blue:hover{background:rgba(74,163,255,.24)}
   z-index:2;
   position:relative;
   padding:14px;
-  padding-top:46px;
+  padding-top:14px;
   display:flex;
   flex-direction:column;
   gap:8px;
@@ -509,6 +515,30 @@ button.blue:hover{background:rgba(74,163,255,.24)}
   min-height:52px;
 }
 
+
+/* ===== Seat grid (Name top / Timer+Drop bottom) ===== */
+.seat.seat-grid{
+  justify-content: space-between;
+  padding: 10px 10px;
+  gap: 8px;
+}
+.seat.seat-grid .sg-name{
+  font-weight: 900;
+  line-height: 1.1;
+  /* 박스 폭에 따라 자동 축소, 너무 짧게 잘리지 않게 */
+  font-size: clamp(12px, calc(var(--bw, 320px) * 0.060), var(--nameUser, 16px));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.seat.empty.seat-grid .sg-name{ color: var(--muted); font-weight: 800; }
+.seat.seat-grid .sg-bottom{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .seat-top{ display:flex; align-items:center; justify-content:flex-start; gap:8px; }
 .seat-bottom{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
 .seat-bottom .pill{ flex:0 0 auto; }
@@ -602,20 +632,48 @@ button.blue:hover{background:rgba(74,163,255,.24)}
 /* box list card */
 .box-card{
   display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  justify-content:center;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
   gap:10px;
-  padding:10px;
-  margin-bottom:8px;
-  border-radius:14px;
+  padding:6px 10px;
+  margin-bottom:6px;
+  border-radius:12px;
   border:1px solid rgba(255,255,255,.08);
   background:rgba(255,255,255,.04);
 }
 .box-card b{font-size:13px}
 .box-card span{font-size:12px;color:var(--muted)}
-.box-card .btns{display:flex;gap:6px; flex-wrap:wrap}
-.box-card .btns button{padding:10px 12px;font-size:12px; min-height:40px}
+
+.box-card-left{display:flex; flex-direction:column; gap:4px; min-width:0;}
+.box-card-titleline{display:flex; align-items:center; gap:8px; min-width:0;}
+.box-title-edit{
+  flex:1 1 auto;
+  min-width:0;
+  padding:6px 8px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+  font-weight:800;
+}
+.box-title-edit:focus{ outline:none; border-color: rgba(74,163,255,.55); box-shadow: 0 0 0 3px rgba(74,163,255,.18); }
+.box-card .btns{display:flex;gap:6px; flex-wrap:nowrap; align-items:center}
+.icon-btn{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:rgba(233,236,255,.88);
+  font-size:16px;
+}
+.icon-btn:hover{ background:rgba(74,163,255,.10); border-color:rgba(74,163,255,.25); }
+.icon-btn.danger{ color:rgba(233,236,255,.9); background:rgba(255,92,124,.10); border-color:rgba(255,92,124,.22); }
+.icon-btn.danger:hover{ background:rgba(255,92,124,.16); border-color:rgba(255,92,124,.32); }
 
 /* ===== Modal ===== */
 .modal{
@@ -804,10 +862,11 @@ input[type="color"]{
 /* Waiting list: name + (미배정/타이머) 오른쪽 정렬 + 더 얇게 */
 .row .name-line{
   display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  justify-content:center;
+  flex-direction:row;
+  align-items:center;
+  justify-content:flex-start;
   gap:10px;
+  flex-wrap:wrap;
 }
 .row .name-line .meta{
   display:flex;

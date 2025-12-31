@@ -32,6 +32,7 @@ localStorage.setItem(CLIENT_ID_KEY, clientId);
 let isApplyingRemote = false;
 let lastSerialized = "";
 let writeDebounce = null;
+let localRev = 0; // monotonic revision to prevent remote overwrite
 let pendingStateForWrite = null;
 
 const bc = ("BroadcastChannel" in window) ? new BroadcastChannel("BOX_BOARD_BC") : null;
@@ -101,6 +102,9 @@ function loadLocal(){
 }
 function applyRemoteState(payload, source){
   if (!payload) return;
+  // Ignore older remote snapshots (prevents boxes from 'disappearing' after local add)
+  const r = (payload && payload._rev) ? Number(payload._rev) : 0;
+  if (r && r < localRev) return; // older Firestore snapshot ignored
   applySerializableIntoState(payload);
   persistLocal();
   const el = document.getElementById("syncLabel");
@@ -112,6 +116,10 @@ function broadcastState(payload){
 }
 
 function scheduleWriteAll(payload){
+  // stamp local revision so Firestore snapshots can't overwrite newer local state
+  localRev = Date.now();
+  try{ payload = { ...payload, _rev: localRev, _revBy: clientId }; }catch(_){ }
+
   persistLocal();
   broadcastState(payload);
 
@@ -173,6 +181,9 @@ const Firestore = {
           if (el) el.textContent = "연결됨 (Firestore)";
           return;
         }
+        // Ignore older snapshots than our latest local write
+        const r = data._rev ? Number(data._rev) : 0;
+        if (r && r < localRev) return;
         applyRemoteState(data, "Firestore");
       });
 
@@ -481,7 +492,13 @@ function bindUI(){
   const btnAddBox = $("#btnAddBox");
   if (btnAddBox){
     btnAddBox.addEventListener("click", ()=>{
-      const board = getActiveBoard();
+      let board = getActiveBoard();
+      if (!board){
+        const bid = uid();
+        state.boards.push({ id: bid, name: "배치도 1", boxes: [] });
+        state.activeBoardId = bid;
+        board = getActiveBoard();
+      }
       if (!board) return;
       const t = now();
       const idx = board.boxes.length + 1;
@@ -498,6 +515,8 @@ function bindUI(){
         text: structuredClone(DEFAULT_TEXT),
       });
       renderAll();
+      // ✅ ensure persistence immediately (GitHub Pages + Firestore)
+      try{ scheduleWriteAll(toSerializableState()); }catch(e){}
     });
   }
   const btnDeleteSelected = $("#btnDeleteSelected");
@@ -1402,8 +1421,14 @@ function renderBoard(){
     if (closeBtn){
       closeBtn.addEventListener("click", (e)=>{
         e.stopPropagation();
-        const board = getActiveBoard();
-        if (!board) return;
+        let board = getActiveBoard();
+      if (!board){
+        // create a default board if none exists (prevents 'box add' doing nothing)
+        const bid = uid();
+        state.boards.push({ id: bid, title: '배치도 1', boxes: [] });
+        state.activeBoardId = bid;
+        board = getActiveBoard();
+      }
         // 박스에 사람이 있으면 대기로 복귀
         if (box?.seat?.personId){
           const p = state.people.find(x=>x.id===box.seat.personId);

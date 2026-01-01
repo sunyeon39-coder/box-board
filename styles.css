@@ -332,8 +332,9 @@ body{
 .box{
   position:absolute;
   transform: translate3d(var(--x), var(--y), 0);
-  width: 360px;
-  height: 220px;
+  /* size is controlled from JS via CSS variables */
+  width: var(--w, 360px);
+  height: var(--h, 220px);
   border-radius: 22px;
   border:1px solid rgba(255,255,255,.10);
   box-shadow: 0 10px 22px rgba(0,0,0,.25);

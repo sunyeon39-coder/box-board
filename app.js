@@ -1,774 +1,683 @@
-
-/* Box Board - stable build (split box layout) v20260102-13 */
+// Box Board Stable 2.2
 (() => {
-  const $ = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-  const now = () => Date.now();
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  const LS_KEY = "boxboard_state_v3";
+  const els = {
+    layout: $("#layout"),
+    side: $("#side"),
+    toggleSide: $("#toggleSide"),
+    tabs: $$(".tab"),
+    panels: $$(".tabPanel"),
 
-  const state = {
-    zoom: 1,
-    showGrid: true,
-    snap: true,
-    sideCollapsed: false,
-    waiters: [], // {id, name, createdAt}
-    boxes: [],   // {id, name, x, y, color, assigned: waiterId|null, assignedAt:number|null}
-    selectedBoxIds: [],
+    waitName: $("#waitName"),
+    addWait: $("#addWait"),
+    waitSearch: $("#waitSearch"),
+    waitList: $("#waitList"),
+
+    assignedSearch: $("#assignedSearch"),
+    assignedList: $("#assignedList"),
+
+    boxName: $("#boxName"),
+    addBox: $("#addBox"),
+    boxSearch: $("#boxSearch"),
+    boxList: $("#boxList"),
+
+    boardOuter: $("#boardOuter"),
+    board: $("#board"),
+    grid: $("#grid"),
+
+    zoomOut: $("#zoomOut"),
+    zoomIn: $("#zoomIn"),
+    zoomReset: $("#zoomReset"),
+    zoomPct: $("#zoomPct"),
+
+    gridToggle: $("#gridToggle"),
+    saveHint: $("#saveHint"),
+
+    alignH: $("#alignH"),
+    alignV: $("#alignV"),
+    distributeH: $("#distributeH"),
+    distributeV: $("#distributeV"),
+    deleteSelected: $("#deleteSelected"),
   };
 
-  // ---------- utils ----------
-  const uid = () => Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+  const STORAGE_KEY = "boxBoard_stable_2_2";
+  const now = () => Date.now();
+  const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : String(now()) + Math.random().toString(16).slice(2));
 
-  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-  const snapTo = (v, grid=40) => Math.round(v / grid) * grid;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  const fmt = (ms) => {
-    ms = Math.max(0, ms);
-    const s = Math.floor(ms/1000);
+  function fmt(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
     const hh = String(Math.floor(s/3600)).padStart(2,"0");
     const mm = String(Math.floor((s%3600)/60)).padStart(2,"0");
     const ss = String(s%60).padStart(2,"0");
     return `${hh}:${mm}:${ss}`;
+  }
+
+  let state = {
+    zoom: 1,
+    gridOn: true,
+    waiters: [],
+    boxes: [],
+    selectedBoxIds: [],
   };
 
-  const save = () => {
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-    showSaveHint("저장됨");
-  };
-
-  const load = () => {
+  function load(){
     try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(!raw) return;
-      const data = JSON.parse(raw);
-      Object.assign(state, data);
-      // sanity
-      state.waiters ||= [];
-      state.boxes ||= [];
-      state.selectedBoxIds ||= [];
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        state = { ...state, ...parsed };
+      }
     }catch(e){}
-  };
+    state.zoom = clamp(Number(state.zoom)||1, 0.25, 2.5);
+    state.gridOn = state.gridOn !== false;
+    if(!Array.isArray(state.waiters)) state.waiters = [];
+    if(!Array.isArray(state.boxes)) state.boxes = [];
+    if(!Array.isArray(state.selectedBoxIds)) state.selectedBoxIds = [];
+  }
 
-  let saveHintTimer = null;
-  const showSaveHint = (txt) => {
-    const el = $("#saveHint");
-    if(!el) return;
-    el.textContent = txt;
-    el.style.opacity = "1";
-    clearTimeout(saveHintTimer);
-    saveHintTimer = setTimeout(() => { el.style.opacity = ".75"; }, 800);
-  };
+  let saveT = null;
+  function flashSaved(){
+    els.saveHint.textContent = "저장됨";
+    els.saveHint.style.opacity = "0.9";
+    clearTimeout(saveT);
+    saveT = setTimeout(()=>{ els.saveHint.style.opacity = "0.65"; }, 800);
+  }
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      zoom: state.zoom,
+      gridOn: state.gridOn,
+      waiters: state.waiters,
+      boxes: state.boxes,
+      selectedBoxIds: state.selectedBoxIds,
+    }));
+    flashSaved();
+  }
 
-  // ---------- DOM refs ----------
-  const layoutEl = $("#layout");
-  const sideEl = $("#side");
-  const boardEl = $("#board");
-  const boardOuterEl = $("#boardOuter");
-  const gridEl = $("#grid");
-  const zoomPctEl = $("#zoomPct");
-
-  const waitNameEl = $("#waitName");
-  const addWaitBtn = $("#addWait");
-  const waitSearchEl = $("#waitSearch");
-  const waitListEl = $("#waitList");
-
-  const assignedSearchEl = $("#assignedSearch");
-  const assignedListEl = $("#assignedList");
-
-  const boxNameEl = $("#boxName");
-  const addBoxBtn = $("#addBox");
-  const boxSearchEl = $("#boxSearch");
-  const boxListEl = $("#boxList");
-
-  // ---------- Tabs ----------
-  const setTab = (key) => {
-    $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === key));
-    $$(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === key ? "true" : "false"));
-    $$(".tabPanel").forEach(p => p.classList.toggle("hidden", p.dataset.panel !== key));
-  };
-  $$(".tab").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
-
-  // ---------- Sidebar toggle ----------
-  const toggleSide = () => {
-    state.sideCollapsed = !state.sideCollapsed;
-    layoutEl.classList.toggle("sideCollapsed", state.sideCollapsed);
+  function setZoom(z){
+    state.zoom = clamp(z, 0.25, 2.5);
+    els.board.style.transform = `scale(${state.zoom})`;
+    els.zoomPct.textContent = `${Math.round(state.zoom*100)}%`;
     save();
-  };
-  $("#toggleSide").addEventListener("click", toggleSide);
-  window.addEventListener("keydown", (e) => {
+  }
+
+  function setGrid(on){
+    state.gridOn = !!on;
+    els.grid.classList.toggle("hidden", !state.gridOn);
+    els.gridToggle.checked = state.gridOn;
+    save();
+  }
+
+  function selectBox(id, {toggle=false, add=false} = {}){
+    const set = new Set(state.selectedBoxIds);
+    if(toggle){
+      if(set.has(id)) set.delete(id); else set.add(id);
+    }else if(add){
+      set.add(id);
+    }else{
+      set.clear(); set.add(id);
+    }
+    state.selectedBoxIds = Array.from(set);
+    renderBoard();
+    save();
+  }
+  function clearSelection(){
+    state.selectedBoxIds = [];
+    renderBoard();
+    save();
+  }
+
+  function boxById(id){ return state.boxes.find(b => b.id === id); }
+  function waiterById(id){ return state.waiters.find(w => w.id === id); }
+
+  // Tabs
+  els.tabs.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const t = btn.dataset.tab;
+      els.tabs.forEach(b=>b.classList.toggle("active", b===btn));
+      els.panels.forEach(p=>{
+        p.classList.toggle("hidden", p.dataset.panel !== t);
+      });
+    });
+  });
+
+  // Sidebar toggle
+  els.toggleSide.addEventListener("click", ()=>{
+    els.layout.classList.toggle("sideCollapsed");
+  });
+  window.addEventListener("keydown", (e)=>{
     if(e.key === "Tab"){
       e.preventDefault();
-      toggleSide();
+      els.layout.classList.toggle("sideCollapsed");
     }
     if(e.key === "Delete"){
-      deleteSelectedBoxes();
+      if(state.selectedBoxIds.length){
+        deleteSelectedBoxes();
+      }
+    }
+    if(e.key === "Escape"){
+      clearSelection();
     }
   });
 
-  // ---------- Grid / Snap ----------
-  const applyGridSnapUI = () => {
-    $("#gridToggle").checked = !!state.showGrid;
-    $("#snapToggle").checked = !!state.snap;
-    gridEl.classList.toggle("hidden", !state.showGrid);
-  };
-  $("#gridToggle").addEventListener("change", (e)=>{ state.showGrid = e.target.checked; applyGridSnapUI(); save(); });
-  $("#snapToggle").addEventListener("change", (e)=>{ state.snap = e.target.checked; save(); });
+  // Zoom controls
+  els.zoomIn.addEventListener("click", ()=>setZoom(state.zoom + 0.1));
+  els.zoomOut.addEventListener("click", ()=>setZoom(state.zoom - 0.1));
+  els.zoomReset.addEventListener("click", ()=>setZoom(1));
 
-  // ---------- Zoom ----------
-  const applyZoom = () => {
-    state.zoom = clamp(state.zoom, 0.3, 2.5);
-    boardEl.style.transform = `scale(${state.zoom})`;
-    zoomPctEl.textContent = `${Math.round(state.zoom*100)}%`;
-  };
-  $("#zoomIn").addEventListener("click", ()=>{ state.zoom += 0.1; applyZoom(); save(); });
-  $("#zoomOut").addEventListener("click", ()=>{ state.zoom -= 0.1; applyZoom(); save(); });
-  $("#zoomReset").addEventListener("click", ()=>{ state.zoom = 1; applyZoom(); save(); });
-  boardOuterEl.addEventListener("wheel", (e)=>{
+  // Wheel zoom
+  els.boardOuter.addEventListener("wheel", (e)=>{
     if(!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    state.zoom += (e.deltaY > 0 ? -0.05 : 0.05);
-    applyZoom();
-    save();
+    const delta = e.deltaY;
+    const factor = delta > 0 ? 0.9 : 1.1;
+    setZoom(state.zoom * factor);
   }, {passive:false});
 
-  // ---------- Waiters ----------
-  const addWaiter = (name) => {
-    name = (name || "").trim();
-    if(!name) return;
-    state.waiters.unshift({ id: uid(), name, createdAt: now() });
-    save();
+  els.gridToggle.addEventListener("change", ()=>setGrid(els.gridToggle.checked));
+
+  // Add waiter
+  function addWaiter(name){
+    const n = String(name||"").trim();
+    if(!n) return;
+    state.waiters.unshift({ id: uid(), name: n, createdAt: now() });
+    els.waitName.value = "";
     renderAll();
-  };
+    save();
+  }
+  els.addWait.addEventListener("click", ()=>addWaiter(els.waitName.value));
+  els.waitName.addEventListener("keydown", (e)=>{
+    if(e.key==="Enter") addWaiter(els.waitName.value);
+  });
+  els.waitSearch.addEventListener("input", renderWaitList);
 
-  const editWaiter = (id) => {
-    const w = state.waiters.find(x=>x.id===id);
-    if(!w) return;
-    const v = prompt("이름 수정", w.name);
-    if(v == null) return;
-    w.name = v.trim() || w.name;
-    save(); renderAll();
-  };
+  // Assigned search
+  els.assignedSearch.addEventListener("input", renderAssignedList);
 
-  const deleteWaiter = (id) => {
-    // also unassign from any box
-    state.boxes.forEach(b=>{
-      if(b.assigned === id){ b.assigned = null; b.assignedAt = null; }
-    });
-    state.waiters = state.waiters.filter(w=>w.id!==id);
-    save(); renderAll();
-  };
-
-  addWaitBtn.addEventListener("click", ()=> addWaiter(waitNameEl.value));
-  waitNameEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") addWaiter(waitNameEl.value); });
-
-  // ---------- Boxes ----------
-  const addBox = (name) => {
-    name = (name || "").trim();
-    if(!name) return;
+  // Add box
+  function addBox(name){
+    const n = String(name||"").trim();
+    if(!n) return;
     const b = {
       id: uid(),
-      name,
-      x: 200 + state.boxes.length*40,
-      y: 120 + state.boxes.length*40,
+      name: n,
+      x: 120 + Math.random()*140,
+      y: 120 + Math.random()*140,
+      w: 520,
+      h: 240,
       color: "green",
-      assigned: null,
+      assignedId: null,
       assignedAt: null,
-      w: 560,
-      h: 260,
     };
     state.boxes.push(b);
-    save(); renderAll();
-  };
+    els.boxName.value = "";
+    renderAll();
+    save();
+  }
+  els.addBox.addEventListener("click", ()=>addBox(els.boxName.value));
+  els.boxName.addEventListener("keydown", (e)=>{ if(e.key==="Enter") addBox(els.boxName.value); });
+  els.boxSearch.addEventListener("input", renderBoxList);
 
-  const editBoxName = (boxId) => {
-    const b = state.boxes.find(x=>x.id===boxId);
-    if(!b) return;
-    const v = prompt("BOX 이름 변경", b.name);
-    if(v == null) return;
-    b.name = v.trim() || b.name;
-    save(); renderAll();
-  };
-
-  const deleteBox = (boxId) => {
-    state.boxes = state.boxes.filter(b=>b.id!==boxId);
-    state.selectedBoxIds = state.selectedBoxIds.filter(id=>id!==boxId);
-    save(); renderAll();
-  };
-
-  addBoxBtn.addEventListener("click", ()=> addBox(boxNameEl.value));
-  boxNameEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") addBox(boxNameEl.value); });
-
-  const deleteSelectedBoxes = () => {
-    if(!state.selectedBoxIds.length) return;
-    if(!confirm(`선택된 박스 ${state.selectedBoxIds.length}개를 삭제할까요?`)) return;
-    state.boxes = state.boxes.filter(b=>!state.selectedBoxIds.includes(b.id));
+  // Top operations (selection)
+  function deleteSelectedBoxes(){
+    const set = new Set(state.selectedBoxIds);
+    const removed = state.boxes.filter(b=>set.has(b.id));
+    // return assigned back to waiting
+    for(const b of removed){
+      if(b.assignedId){
+        const existing = waiterById(b.assignedId);
+        if(!existing){
+          state.waiters.unshift({ id: b.assignedId, name: b.assignedName || "이름", createdAt: now() });
+        }
+      }
+    }
+    state.boxes = state.boxes.filter(b=>!set.has(b.id));
     state.selectedBoxIds = [];
-    save(); renderAll();
-  };
-  $("#deleteSelected").addEventListener("click", deleteSelectedBoxes);
+    renderAll();
+    save();
+  }
+  els.deleteSelected.addEventListener("click", deleteSelectedBoxes);
 
-  // ---------- Align / distribute ----------
-  const getSelectedBoxes = () => state.boxes.filter(b=>state.selectedBoxIds.includes(b.id));
-  const alignH = () => {
-    const sel = getSelectedBoxes(); if(sel.length < 2) return;
-    const y = sel[0].y;
-    sel.forEach(b=> b.y = y);
-    save(); renderAll();
-  };
-  const alignV = () => {
-    const sel = getSelectedBoxes(); if(sel.length < 2) return;
-    const x = sel[0].x;
-    sel.forEach(b=> b.x = x);
-    save(); renderAll();
-  };
-  const distributeH = () => {
-    const sel = getSelectedBoxes(); if(sel.length < 3) return;
-    sel.sort((a,b)=>a.x-b.x);
-    const minX = sel[0].x, maxX = sel[sel.length-1].x;
-    const step = (maxX - minX) / (sel.length-1);
-    sel.forEach((b,i)=> b.x = minX + step*i);
-    save(); renderAll();
-  };
-  const distributeV = () => {
-    const sel = getSelectedBoxes(); if(sel.length < 3) return;
-    sel.sort((a,b)=>a.y-b.y);
-    const minY = sel[0].y, maxY = sel[sel.length-1].y;
-    const step = (maxY - minY) / (sel.length-1);
-    sel.forEach((b,i)=> b.y = minY + step*i);
-    save(); renderAll();
-  };
-  $("#alignH").addEventListener("click", alignH);
-  $("#alignV").addEventListener("click", alignV);
-  $("#distributeH").addEventListener("click", distributeH);
-  $("#distributeV").addEventListener("click", distributeV);
+  function alignSelected(axis){
+    const ids = state.selectedBoxIds;
+    if(ids.length < 2) return;
+    const boxes = ids.map(boxById).filter(Boolean);
+    if(!boxes.length) return;
+    if(axis==="h"){
+      const y = boxes[0].y;
+      boxes.forEach(b=>b.y = y);
+    }else{
+      const x = boxes[0].x;
+      boxes.forEach(b=>b.x = x);
+    }
+    renderBoard(); save();
+  }
+  els.alignH.addEventListener("click", ()=>alignSelected("h"));
+  els.alignV.addEventListener("click", ()=>alignSelected("v"));
 
-  // ---------- Assign / Unassign ----------
-  const unassignBoxToWaitTop = (box) => {
-    if(!box.assigned) return;
-    const w = findWaiterAny(box.assigned);
-    // if assigned waiter object is not in waiters (likely), reconstruct from assigned cache stored on box
-    const waiterObj = w || { id: box.assigned, name: box.assignedName || "이름", createdAt: now() };
-    // prevent duplicates: remove if exists in waiters
-    state.waiters = state.waiters.filter(x=>x.id!==waiterObj.id);
-    state.waiters.unshift({ ...waiterObj, createdAt: now() });
-    box.assigned = null;
-    box.assignedAt = null;
-    box.assignedName = null;
-  };
+  function distributeSelected(axis){
+    const ids = state.selectedBoxIds;
+    if(ids.length < 3) return;
+    const boxes = ids.map(boxById).filter(Boolean);
+    boxes.sort((a,b)=> axis==="h" ? a.x-b.x : a.y-b.y);
+    const first = boxes[0], last = boxes[boxes.length-1];
+    const span = axis==="h" ? (last.x-first.x) : (last.y-first.y);
+    const step = span / (boxes.length-1);
+    boxes.forEach((b,i)=>{
+      if(axis==="h") b.x = first.x + step*i;
+      else b.y = first.y + step*i;
+    });
+    renderBoard(); save();
+  }
+  els.distributeH.addEventListener("click", ()=>distributeSelected("h"));
+  els.distributeV.addEventListener("click", ()=>distributeSelected("v"));
 
-  const findWaiterAny = (waiterId) => state.waiters.find(w=>w.id===waiterId) || null;
-
-  const assignWaiterToBox = (waiterId, boxId) => {
-    const box = state.boxes.find(b=>b.id===boxId);
+  // Drag wait -> box
+  function assignWaiterToBox(waiterId, boxId){
+    const wIdx = state.waiters.findIndex(w=>w.id===waiterId);
+    if(wIdx < 0) return; // must exist
+    const waiter = state.waiters[wIdx];
+    const box = boxById(boxId);
     if(!box) return;
 
-    // locate waiter in wait list
-    let wIdx = state.waiters.findIndex(w=>w.id===waiterId);
-    let waiter = wIdx>=0 ? state.waiters[wIdx] : null;
-
-    // fallback: if drag passed name only
-    if(!waiter){
-      // try match by name string
-      const byNameIdx = state.waiters.findIndex(w=>w.name===String(waiterId));
-      if(byNameIdx>=0){ wIdx = byNameIdx; waiter = state.waiters[byNameIdx]; }
-    }
-    if(!waiter) return;
-
-    // IMPORTANT: remove dragged waiter first (avoid index shift bug)
+    // remove dragged waiter first (prevents index shift bugs)
     state.waiters.splice(wIdx, 1);
 
-    // move previous assigned to wait top
-    if(box.assigned){
-      const prev = { id: box.assigned, name: box.assignedName || "이름", createdAt: now() };
-      state.waiters = state.waiters.filter(x=>x.id!==prev.id);
-      state.waiters.unshift(prev);
+    // if box had assigned, return to waiting
+    if(box.assignedId){
+      state.waiters.unshift({ id: box.assignedId, name: box.assignedName || "이름", createdAt: now() });
     }
 
-    box.assigned = waiter.id;
+    box.assignedId = waiter.id;
     box.assignedName = waiter.name;
     box.assignedAt = now();
 
-    save(); renderAll();
-  };
+    renderAll();
+    save();
+  }
 
-  const sendBoxToWait = (boxId) => {
-    const box = state.boxes.find(b=>b.id===boxId);
-    if(!box || !box.assigned) return;
-    const prev = { id: box.assigned, name: box.assignedName || "이름", createdAt: now() };
-    state.waiters = state.waiters.filter(x=>x.id!==prev.id);
-    state.waiters.unshift(prev);
-    box.assigned = null;
+  function unassignBox(boxId){
+    const box = boxById(boxId);
+    if(!box || !box.assignedId) return;
+    state.waiters.unshift({ id: box.assignedId, name: box.assignedName || "이름", createdAt: now() });
+    box.assignedId = null;
+    box.assignedName = "";
     box.assignedAt = null;
-    box.assignedName = null;
-    save(); renderAll();
-  };
-
-  // ---------- Drag data ----------
-  const DRAG_MIME = "text/plain";
-  let dragWaiterId = null;
-
-  const attachWaiterDrag = (el, waiterId) => {
-    el.draggable = true;
-    el.addEventListener("dragstart", (e)=>{
-      dragWaiterId = waiterId;
-      e.dataTransfer.setData(DRAG_MIME, waiterId);
-      e.dataTransfer.effectAllowed = "move";
-    });
-    el.addEventListener("dragend", ()=>{
-      dragWaiterId = null;
-    });
-  };
-
-  // ---------- Box drag/multi-select ----------
-  let dragMode = null; // {startX, startY, origin: Map(id->{x,y})}
-  let resizeMode = null; // {boxId, startW, startH, startX, startY}
-  const onBoxPointerDown = (e, boxId) => {
-    // ignore button clicks / resize handle
-    if(e.target.closest("button") || e.target.closest(".resizeHandle")) return;
-
-    const isShift = e.shiftKey;
-    const already = state.selectedBoxIds.includes(boxId);
-
-    if(isShift){
-      if(already) state.selectedBoxIds = state.selectedBoxIds.filter(id=>id!==boxId);
-      else state.selectedBoxIds.push(boxId);
-    }else{
-      if(!already) state.selectedBoxIds = [boxId];
-    }
-    renderBoxesOnly();
-
-    const pt = getBoardPoint(e);
-    const origin = new Map();
-    state.selectedBoxIds.forEach(id=>{
-      const b = state.boxes.find(x=>x.id===id);
-      if(b) origin.set(id, {x:b.x, y:b.y});
-    });
-    dragMode = { startX: pt.x, startY: pt.y, origin };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp, {once:true});
-  };
-
-  const getBoardPoint = (e) => {
-    const rect = boardEl.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / state.zoom;
-    const y = (e.clientY - rect.top) / state.zoom;
-    return {x,y};
-  };
-
-  const onPointerMove = (e) => {
-    if(!dragMode) return;
-    const pt = getBoardPoint(e);
-    const dx = pt.x - dragMode.startX;
-    const dy = pt.y - dragMode.startY;
-    dragMode.origin.forEach((o, id)=>{
-      const b = state.boxes.find(x=>x.id===id);
-      if(!b) return;
-      let nx = o.x + dx;
-      let ny = o.y + dy;
-      if(state.snap){
-        nx = snapTo(nx, 40);
-        ny = snapTo(ny, 40);
-      }
-      b.x = nx; b.y = ny;
-    });
-    renderBoxesOnly();
-  };
-
-  const onPointerUp = () => {
-    window.removeEventListener("pointermove", onPointerMove);
-    dragMode = null;
+    renderAll();
     save();
-  };
+  }
 
-
-  const startResize = (e, boxId) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const b = state.boxes.find(x=>x.id===boxId);
-    if(!b) return;
-    const pt = getBoardPoint(e);
-    resizeMode = {
-      boxId,
-      startW: b.w || 560,
-      startH: b.h || 260,
-      startX: pt.x,
-      startY: pt.y,
-    };
-    window.addEventListener("pointermove", onResizeMove);
-    window.addEventListener("pointerup", stopResize, { once: true });
-  };
-
-  const onResizeMove = (e) => {
-    if(!resizeMode) return;
-    const b = state.boxes.find(x=>x.id===resizeMode.boxId);
-    if(!b) return;
-    const pt = getBoardPoint(e);
-    let nw = resizeMode.startW + (pt.x - resizeMode.startX);
-    let nh = resizeMode.startH + (pt.y - resizeMode.startY);
-    if(state.snap){
-      nw = snapTo(nw, 40);
-      nh = snapTo(nh, 40);
-    }
-    b.w = clamp(nw, 360, 1200);
-    b.h = clamp(nh, 180, 800);
-    renderBoxesOnly();
-  };
-
-  const stopResize = () => {
-    window.removeEventListener("pointermove", onResizeMove);
-    resizeMode = null;
-    save();
-  };
-
-
-  // ---------- Render ----------
-  const filterText = (s) => (s||"").trim().toLowerCase();  const renderWait = () => {
-    const q = filterText(waitSearchEl.value);
-    waitListEl.innerHTML = "";
-    state.waiters
-      .filter(w => !q || w.name.toLowerCase().includes(q))
-      .forEach(w=>{
-        const item = document.createElement("div");
-        item.className = "item waitItem";
-        item.dataset.waiterId = w.id;
-
-        const left = document.createElement("div");
-        left.className = "waitLine";
-
-        const name = document.createElement("div");
-        name.className = "waitName";
-        name.textContent = w.name;
-
-        const time = document.createElement("div");
-        time.className = "waitTime";
-        time.dataset.t = "wait";
-        time.dataset.createdAt = String(w.createdAt);
-        time.textContent = `대기 ${fmt(now()-w.createdAt)}`;
-
-        left.appendChild(name);
-        left.appendChild(time);
-
-        const actions = document.createElement("div");
-        actions.className = "itemActions";
-
-        const editBtn = document.createElement("button");
-        editBtn.className = "itemBtn";
-        editBtn.textContent = "수정";
-        editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); editWaiter(w.id); });
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "itemBtn danger";
-        delBtn.textContent = "삭제";
-        delBtn.addEventListener("click", (e)=>{ e.stopPropagation(); deleteWaiter(w.id); });
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-
-        item.appendChild(left);
-        item.appendChild(actions);
-
-        attachWaiterDrag(item, w.id);
-
-        waitListEl.appendChild(item);
+  // Render lists
+  function renderWaitList(){
+    const q = (els.waitSearch.value||"").trim().toLowerCase();
+    els.waitList.innerHTML = "";
+    const items = state.waiters.filter(w => !q || w.name.toLowerCase().includes(q));
+    for(const w of items){
+      const row = document.createElement("div");
+      row.className = "item";
+      row.draggable = true;
+      row.addEventListener("dragstart", (e)=>{
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", w.id);
       });
-  };
 
-  const getAssignedRows = () => {
-    const rows = [];
-    state.boxes.forEach(b=>{
-      if(!b.assigned) return;
-      rows.push({
-        boxId: b.id,
-        boxName: b.name,
-        waiterId: b.assigned,
-        name: b.assignedName || "이름",
-        assignedAt: b.assignedAt || now(),
-      });
-    });
-    return rows;
-  };
-
-  const renderAssigned = () => {
-    const q = filterText(assignedSearchEl.value);
-    assignedListEl.innerHTML = "";
-    const rows = getAssignedRows()
-      .filter(r => !q || (r.name + " " + r.boxName).toLowerCase().includes(q));
-
-    rows.forEach(r=>{
-      const item = document.createElement("div");
-      item.className = "item clickable";
-      item.addEventListener("click", ()=> focusBox(r.boxId));
-
-      const left = document.createElement("div");
-      left.className = "waitLine";
-
-      const nm = document.createElement("div");
-      nm.className = "waitName";
-      nm.textContent = `${r.name} · ${r.boxName}`;
-
-      const tm = document.createElement("div");
-      tm.className = "waitTime";
-      tm.dataset.t = "assigned";
-      tm.dataset.assignedAt = String(r.assignedAt);
-      tm.textContent = `배치 ${fmt(now()-r.assignedAt)}`;
-
-      left.appendChild(nm);
-      left.appendChild(tm);
+      const line = document.createElement("div");
+      line.className = "waitLine";
+      const name = document.createElement("div");
+      name.className = "waitName";
+      name.textContent = w.name;
+      const time = document.createElement("div");
+      time.className = "waitTime";
+      time.textContent = `대기 ${fmt(now()-w.createdAt)}`;
+      line.append(name, time);
 
       const actions = document.createElement("div");
       actions.className = "itemActions";
-      const toWaitBtn = document.createElement("button");
-      toWaitBtn.className = "itemBtn";
-      toWaitBtn.textContent = "대기";
-      toWaitBtn.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(r.boxId); });
-      actions.appendChild(toWaitBtn);
-
-      item.appendChild(left);
-      item.appendChild(actions);
-      assignedListEl.appendChild(item);
-    });
-  };
-
-  const renderBoxList = () => {
-    const q = filterText(boxSearchEl.value);
-    boxListEl.innerHTML = "";
-    state.boxes
-      .filter(b => !q || b.name.toLowerCase().includes(q))
-      .forEach(b=>{
-        const item = document.createElement("div");
-        item.className = "item clickable";
-        item.addEventListener("click", ()=> focusBox(b.id));
-
-        const left = document.createElement("div");
-        left.className = "waitLine";
-
-        const nm = document.createElement("div");
-        nm.className = "waitName";
-        nm.textContent = b.name;
-
-        const tm = document.createElement("div");
-        tm.className = "waitTime";
-        tm.textContent = b.assigned ? "진행중" : "비어있음";
-
-        left.appendChild(nm);
-        left.appendChild(tm);
-
-        item.appendChild(left);
-        boxListEl.appendChild(item);
+      const edit = document.createElement("button");
+      edit.className = "itemBtn";
+      edit.textContent = "수정";
+      edit.addEventListener("click", ()=>{
+        const nn = prompt("이름 수정", w.name);
+        if(nn===null) return;
+        const t = String(nn).trim();
+        if(!t) return;
+        const ww = waiterById(w.id);
+        if(ww) ww.name = t;
+        renderAll(); save();
       });
-  };
+      const del = document.createElement("button");
+      del.className = "itemBtn danger";
+      del.textContent = "삭제";
+      del.addEventListener("click", ()=>{
+        state.waiters = state.waiters.filter(x=>x.id!==w.id);
+        renderAll(); save();
+      });
+      actions.append(edit, del);
 
-  const focusBox = (boxId) => {
-    const el = boardEl.querySelector(`.box[data-box-id="${boxId}"]`);
-    if(!el) return;
-    el.classList.add("highlight");
-    setTimeout(()=> el.classList.remove("highlight"), 1600);
-
-    // scroll into view inside boardOuter
-    const rect = el.getBoundingClientRect();
-    const outerRect = boardOuterEl.getBoundingClientRect();
-    const dx = rect.left - outerRect.left - outerRect.width/2 + rect.width/2;
-    const dy = rect.top - outerRect.top - outerRect.height/2 + rect.height/2;
-    boardOuterEl.scrollBy({ left: dx, top: dy, behavior: "smooth" });
-  };
-
-  const makeBoxEl = (b) => {
-    const box = document.createElement("div");
-    box.className = "box";
-    box.dataset.boxId = b.id;
-    box.dataset.color = b.color || "green";
-        box.style.setProperty("--x", `${b.x}px`);
-    box.style.setProperty("--y", `${b.y}px`);
-    box.style.setProperty("--w", `${b.w or 560}px`);
-    box.style.setProperty("--h", `${b.h or 260}px`);
-    box.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
-
-    // drag over
-    box.addEventListener("dragover", (e)=>{ e.preventDefault(); box.classList.add("dropOver"); });
-    box.addEventListener("dragleave", ()=> box.classList.remove("dropOver"));
-    box.addEventListener("drop", (e)=>{
-      e.preventDefault();
-      box.classList.remove("dropOver");
-      const data = e.dataTransfer.getData(DRAG_MIME) || dragWaiterId;
-      if(!data) return;
-      assignWaiterToBox(data, b.id);
-      dragWaiterId = null;
-    });
-
-    // pointer down for moving/selection
-    box.addEventListener("pointerdown", (e)=> onBoxPointerDown(e, b.id));
-
-    const inner = document.createElement("div");
-    inner.className = "boxInner";
-
-    const wm = document.createElement("div");
-    wm.className = "boxWatermark";
-    wm.textContent = b.name;
-
-    const right = document.createElement("div");
-    right.className = "boxRightPane";
-
-    const actions = document.createElement("div");
-    actions.className = "boxActions";
-
-    const editBtn = document.createElement("button");
-    editBtn.className = "iconBtn";
-    editBtn.title = "BOX 이름 수정";
-    editBtn.textContent = "✏";
-    editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); editBoxName(b.id); });
-
-    const delBtn = document.createElement("button");
-    delBtn.className = "iconBtn";
-    delBtn.title = "BOX 삭제";
-    delBtn.textContent = "✕";
-    delBtn.addEventListener("click", (e)=>{ e.stopPropagation(); if(confirm("이 BOX를 삭제할까요?")) deleteBox(b.id); });
-
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
-
-    const slot = document.createElement("div");
-    slot.className = "slot";
-
-    if(b.assigned){
-      const left = document.createElement("div");
-      left.className = "slotLeft";
-
-      const nm = document.createElement("div");
-      nm.className = "slotName";
-      nm.textContent = b.assignedName || "이름";
-      nm.addEventListener("dblclick", (e)=>{ e.stopPropagation(); sendBoxToWait(b.id); });
-
-      const row = document.createElement("div");
-      row.className = "slotTimeRow";
-
-      const pill = document.createElement("div");
-      pill.className = "timePill";
-      pill.dataset.t = "boxAssigned";
-      pill.dataset.assignedAt = String(b.assignedAt || now());
-      pill.textContent = fmt(now() - (b.assignedAt || now()));
-
-      const lbl = document.createElement("div");
-      lbl.className = "timeLabel";
-      lbl.textContent = "배치 시간";
-
-      row.appendChild(pill);
-      row.appendChild(lbl);
-
-      left.appendChild(nm);
-      left.appendChild(row);
-      slot.appendChild(left);
-    }else{
-      const hint = document.createElement("div");
-      hint.className = "dropHint";
-      hint.textContent = "대기를 드래그해서 여기에 드롭";
-      slot.appendChild(hint);
+      row.append(line, actions);
+      els.waitList.appendChild(row);
     }
-
-    right.appendChild(actions);
-    right.appendChild(slot);
-        // place resize button at box corner (left-bottom)
-
-    inner.appendChild(wm);
-    inner.appendChild(right);
-    
-
-    const rh = document.createElement("div");
-    rh.className = "resizeHandle";
-    rh.title = "모서리 드래그로 크기 조절";
-    rh.addEventListener("pointerdown", (e)=> startResize(e, b.id));
-    inner.appendChild(rh);
-box.appendChild(inner);
-    return box;
-  };
-
-  const renderBoxesOnly = () => {
-    // update box elements in place if possible
-    const existing = new Map();
-    $$(".box", boardEl).forEach(el => existing.set(el.dataset.boxId, el));
-
-    // remove gone
-    existing.forEach((el, id)=>{
-      if(!state.boxes.some(b=>b.id===id)) el.remove();
-    });
-
-    // add/update
-    state.boxes.forEach(b=>{
-      const el = existing.get(b.id) || makeBoxEl(b);
-      if(!existing.get(b.id)) boardEl.appendChild(el);
-      el.style.setProperty("--x", `${b.x}px`);
-      el.style.setProperty("--y", `${b.y}px`);
-      el.style.setProperty("--w", `${b.w or 560}px`);
-      el.style.setProperty("--h", `${b.h or 260}px`);
-      el.dataset.color = b.color || "green";
-            el.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
-
-      // update watermark text if name changed
-      const wm = $(".boxWatermark", el);
-      if(wm && wm.textContent !== b.name) wm.textContent = b.name;
-
-      // update assigned area if assignment changed: easiest rebuild slot
-      const slot = $(".slot", el);
-      const hasAssignedDom = !!$(".slotName", el);
-      if(!!b.assigned !== hasAssignedDom){
-        // rebuild whole box element for simplicity
-        el.replaceWith(makeBoxEl(b));
-      }else{
-        // update name/timer
-        const nm = $(".slotName", el);
-        if(nm && nm.textContent !== (b.assignedName||"이름")) nm.textContent = b.assignedName||"이름";
-        const pill = $('[data-t="boxAssigned"]', el);
-        if(pill) pill.dataset.assignedAt = String(b.assignedAt || now());
-      }
-    });
-  };
-
-  const renderAll = () => {
-    renderWait();
-    renderAssigned();
-    renderBoxList();
-    renderBoxesOnly();
-    applyGridSnapUI();
-    applyZoom();
-    layoutEl.classList.toggle("sideCollapsed", state.sideCollapsed);
-  };
-
-  // ---------- live timers (no rerender) ----------
-  const tick = () => {
-    const t = now();
-    // wait list
-    $$('[data-t="wait"]').forEach(el=>{
-      const c = Number(el.dataset.createdAt||t);
-      el.textContent = `대기 ${fmt(t - c)}`;
-    });
-    // assigned list
-    $$('[data-t="assigned"]').forEach(el=>{
-      const a = Number(el.dataset.assignedAt||t);
-      el.textContent = `배치 ${fmt(t - a)}`;
-    });
-    // box assigned pills
-    $$('[data-t="boxAssigned"]').forEach(el=>{
-      const a = Number(el.dataset.assignedAt||t);
-      el.textContent = fmt(t - a);
-    });
-  };
-
-  // ---------- listeners for search ----------
-  waitSearchEl.addEventListener("input", renderWait);
-  assignedSearchEl.addEventListener("input", renderAssigned);
-  boxSearchEl.addEventListener("input", renderBoxList);
-
-  // ---------- init ----------
-  load();
-
-  // ensure default boxes if empty (optional)
-  if(state.boxes.length === 0){
-    ["1","2","3","4","5"].forEach((n,i)=>{
-      state.boxes.push({ id: uid(), name:n, x: 200 + i*620, y: 140, w:560, h:260, color:"green", assigned:null, assignedAt:null });
-    });
   }
 
-  renderAll();
-  setInterval(tick, 1000);
+  function renderAssignedList(){
+    const q = (els.assignedSearch.value||"").trim().toLowerCase();
+    els.assignedList.innerHTML = "";
+    const assigned = [];
+    for(const b of state.boxes){
+      if(!b.assignedId) continue;
+      const label = `${b.assignedName || ""} · ${b.name}`;
+      if(q && !label.toLowerCase().includes(q)) continue;
+      assigned.push({ boxId: b.id, boxName: b.name, name: b.assignedName, at: b.assignedAt });
+    }
+    for(const a of assigned){
+      const row = document.createElement("div");
+      row.className = "item clickable";
+      row.addEventListener("click", ()=>{
+        focusBox(a.boxId);
+      });
 
+      const line = document.createElement("div");
+      line.className = "waitLine";
+      const name = document.createElement("div");
+      name.className = "waitName";
+      name.textContent = `${a.name} · ${getBoxShortName(a.boxName)}`;
+      const time = document.createElement("div");
+      time.className = "waitTime";
+      time.textContent = `배치 ${fmt(now()-a.at)}`;
+      line.append(name, time);
+
+      const actions = document.createElement("div");
+      actions.className = "itemActions";
+      const toWait = document.createElement("button");
+      toWait.className = "itemBtn";
+      toWait.textContent = "대기";
+      toWait.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        unassignBox(a.boxId);
+      });
+      actions.append(toWait);
+
+      row.append(line, actions);
+      els.assignedList.appendChild(row);
+    }
+  }
+  function getBoxShortName(n){
+    // show last token if like "BOX 5"
+    const s = String(n||"");
+    const parts = s.split(" ").filter(Boolean);
+    return parts.length ? parts[parts.length-1] : s;
+  }
+
+  function renderBoxList(){
+    const q = (els.boxSearch.value||"").trim().toLowerCase();
+    els.boxList.innerHTML = "";
+    const items = state.boxes.filter(b => !q || b.name.toLowerCase().includes(q));
+    for(const b of items){
+      const row = document.createElement("div");
+      row.className = "item clickable";
+      row.addEventListener("click", ()=>focusBox(b.id));
+      const line = document.createElement("div");
+      line.className = "waitLine";
+      const name = document.createElement("div");
+      name.className = "waitName";
+      name.textContent = b.name;
+      const time = document.createElement("div");
+      time.className = "waitTime";
+      time.textContent = b.assignedId ? `사용중` : `비어있음`;
+      line.append(name, time);
+      row.append(line);
+      els.boxList.appendChild(row);
+    }
+  }
+
+  // Board render
+  function renderBoard(){
+    // clear all boxes but keep grid
+    $$("[data-box]", els.board).forEach(n=>n.remove());
+
+    const selected = new Set(state.selectedBoxIds);
+
+    for(const b of state.boxes){
+      const box = document.createElement("div");
+      box.className = "box";
+      box.dataset.box = "1";
+      box.dataset.id = b.id;
+      box.dataset.color = b.color || "green";
+      box.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)`;
+      box.style.width = `${b.w||520}px`;
+      box.style.height = `${b.h||240}px`;
+      if(selected.has(b.id)) box.classList.add("selected");
+
+      // selection + drag move
+      box.addEventListener("pointerdown", (e)=>{
+        // ignore clicks on buttons/handle
+        if(e.target.closest("button") || e.target.closest(".resizeHandle")) return;
+        const multi = e.shiftKey;
+        if(multi) selectBox(b.id, {toggle:true});
+        else selectBox(b.id);
+        startMoveBox(e, b.id);
+      });
+
+      // double click on name area -> unassign
+      box.addEventListener("dblclick", (e)=>{
+        if(e.target.closest("button") || e.target.closest(".resizeHandle")) return;
+        unassignBox(b.id);
+      });
+
+      // drag-over drop waiter
+      box.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+      box.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        const wid = e.dataTransfer.getData("text/plain");
+        if(wid) assignWaiterToBox(wid, b.id);
+      });
+
+      const inner = document.createElement("div");
+      inner.className = "boxInner";
+
+      const wm = document.createElement("div");
+      wm.className = "watermarkBig";
+      wm.textContent = getBoxShortName(b.name);
+
+      const actions = document.createElement("div");
+      actions.className = "boxActionsTop";
+
+      const btnToWait = document.createElement("button");
+      btnToWait.className = "chipBtn";
+      btnToWait.textContent = "대기로";
+      btnToWait.disabled = !b.assignedId;
+      btnToWait.addEventListener("click", (e)=>{ e.stopPropagation(); unassignBox(b.id); });
+
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "chipBtn";
+      btnEdit.textContent = "✏";
+      btnEdit.title = "이름 수정";
+      btnEdit.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        const nn = prompt("BOX 이름 수정", b.name);
+        if(nn===null) return;
+        const t = String(nn).trim();
+        if(!t) return;
+        const bb = boxById(b.id);
+        if(bb) bb.name = t;
+        renderAll(); save();
+      });
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "chipBtn danger";
+      btnDel.textContent = "🗑";
+      btnDel.title = "박스 삭제";
+      btnDel.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        state.boxes = state.boxes.filter(x=>x.id!==b.id);
+        state.selectedBoxIds = state.selectedBoxIds.filter(x=>x!==b.id);
+        renderAll(); save();
+      });
+
+      actions.append(btnToWait, btnEdit, btnDel);
+
+      const pane = document.createElement("div");
+      pane.className = "rightPane";
+
+      const card = document.createElement("div");
+      card.className = "assignCard";
+
+      const left = document.createElement("div");
+      left.className = "assignLeft";
+      const nm = document.createElement("div");
+      nm.className = "assignName";
+      nm.textContent = b.assignedId ? (b.assignedName || "") : "—";
+      const meta = document.createElement("div");
+      meta.className = "assignMeta";
+
+      if(b.assignedId){
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = fmt(now() - (b.assignedAt || now()));
+        const txt = document.createElement("div");
+        txt.textContent = "배치 시간";
+        meta.append(badge, txt);
+      }else{
+        const hint = document.createElement("div");
+        hint.className = "dropHint";
+        hint.textContent = "대기를 드롭";
+        meta.append(hint);
+      }
+
+      left.append(nm, meta);
+      card.append(left);
+
+      pane.append(card);
+
+      // resize handle (bottom-left)
+      const handle = document.createElement("div");
+      handle.className = "resizeHandle";
+      handle.title = "드래그로 크기 조절";
+      handle.addEventListener("pointerdown", (e)=>{
+        e.stopPropagation();
+        e.preventDefault();
+        startResizeBox(e, b.id);
+      });
+
+      inner.append(wm, pane);
+      box.append(inner, actions, handle);
+      els.board.appendChild(box);
+    }
+  }
+
+  function focusBox(id){
+    const b = boxById(id);
+    if(!b) return;
+    // scroll to box area
+    const pad = 80;
+    const x = (b.x*state.zoom) - pad;
+    const y = (b.y*state.zoom) - pad;
+    els.boardOuter.scrollTo({ left: Math.max(0,x), top: Math.max(0,y), behavior:"smooth" });
+    selectBox(id);
+    const node = $(`[data-box][data-id="${id}"]`, els.board);
+    if(node){
+      node.classList.add("highlight");
+      setTimeout(()=>node.classList.remove("highlight"), 1400);
+    }
+  }
+
+  // Move box by pointer drag
+  let drag = null;
+  function startMoveBox(e, boxId){
+    const b = boxById(boxId);
+    if(!b) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const ox = b.x, oy = b.y;
+    drag = { type:"move", boxId, startX, startY, ox, oy };
+    e.target.setPointerCapture?.(e.pointerId);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp, {once:true});
+  }
+
+  function startResizeBox(e, boxId){
+    const b = boxById(boxId);
+    if(!b) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const ow = b.w||520, oh = b.h||240;
+    drag = { type:"resize", boxId, startX, startY, ow, oh };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp, {once:true});
+  }
+
+  function onPointerMove(e){
+    if(!drag) return;
+    const b = boxById(drag.boxId);
+    if(!b) return;
+    if(drag.type==="move"){
+      const dx = (e.clientX - drag.startX) / state.zoom;
+      const dy = (e.clientY - drag.startY) / state.zoom;
+      b.x = drag.ox + dx;
+      b.y = drag.oy + dy;
+      renderBoard();
+    }else if(drag.type==="resize"){
+      const dx = (e.clientX - drag.startX) / state.zoom;
+      const dy = (e.clientY - drag.startY) / state.zoom;
+      b.w = clamp(drag.ow + dx, 320, 920);
+      b.h = clamp(drag.oh + dy, 170, 520);
+      renderBoard();
+    }
+  }
+  function onPointerUp(){
+    window.removeEventListener("pointermove", onPointerMove);
+    drag = null;
+    save();
+  }
+
+  // Click outside to clear selection
+  els.board.addEventListener("pointerdown", (e)=>{
+    if(e.target === els.board || e.target === els.grid){
+      clearSelection();
+    }
+  });
+
+  // Main render
+  function renderAll(){
+    renderWaitList();
+    renderAssignedList();
+    renderBoxList();
+    renderBoard();
+  }
+
+  // Timer ticks
+  function tick(){
+    // update list timer texts only (cheap)
+    $$(".waitTime", els.waitList).forEach((node, idx)=>{
+      // cannot map easily; re-render for simplicity when there are items
+    });
+    // simplest stable: re-render lists if there is any timer visible
+    if(state.waiters.length || state.boxes.some(b=>b.assignedId)){
+      renderWaitList();
+      renderAssignedList();
+      // update box badges without full rerender: renderBoard is heavier; keep simple but not too frequent
+      renderBoard();
+    }
+  }
+
+  // init
+  function init(){
+    load();
+    setZoom(state.zoom);
+    setGrid(state.gridOn);
+    renderAll();
+    setInterval(tick, 1000);
+  }
+
+  // Safety: show error on screen if something breaks
+  window.addEventListener("error", (e)=>{
+    console.error(e.error || e.message);
+    els.saveHint.textContent = "오류: 콘솔 확인";
+    els.saveHint.style.opacity = "1";
+  });
+
+  init();
 })();

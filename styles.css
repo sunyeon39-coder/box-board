@@ -412,8 +412,6 @@ body{
   display:flex;
   gap:10px;
   z-index:5;
-  transform: scale(var(--invZoom,1));
-  transform-origin: top right;
   pointer-events:auto;
 }
 .boxActions *{ pointer-events:auto; }
@@ -459,8 +457,6 @@ body{
   align-items:flex-end;
   justify-content:flex-end;
   padding:6px;
-  transform: scale(var(--invZoom,1));
-  transform-origin: bottom right;
   pointer-events:auto;
 }
 .resizeHandle::before{

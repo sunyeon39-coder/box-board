@@ -119,8 +119,6 @@
   const applyZoom = () => {
     state.zoom = clamp(state.zoom, 0.3, 2.5);
     boardEl.style.transform = `scale(${state.zoom})`;
-    // keep small UI controls (box buttons/handles) clickable even when zoomed out
-    boardOuterEl.style.setProperty("--invZoom", String(1 / state.zoom));
     zoomPctEl.textContent = `${Math.round(state.zoom*100)}%`;
   };
   $("#zoomIn").addEventListener("click", ()=>{ state.zoom += 0.1; applyZoom(); save(); });

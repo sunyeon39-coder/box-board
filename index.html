@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Box Board (Full Stable)</title>
+  <link rel="stylesheet" href="./styles.css?v=20260102-15" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Box Board</div>
+
+    <div class="toolbar">
+      <button class="btn" id="toggleSide" title="사이드바 접기/펼치기 (Tab)">☰</button>
+
+      <div class="sep"></div>
+
+      <button class="btn" id="alignH" title="선택 박스 가로 정렬">가로정렬</button>
+      <button class="btn" id="alignV" title="선택 박스 세로 정렬">세로정렬</button>
+      <button class="btn" id="distributeH" title="선택 박스 가로 간격 맞추기">가로간격</button>
+      <button class="btn" id="distributeV" title="선택 박스 세로 간격 맞추기">세로간격</button>
+      <button class="btn danger" id="deleteSelected" title="선택 박스 삭제 (Del)">선택삭제</button>
+
+      <div class="sep"></div>
+
+      <label class="toggle">
+        <input type="checkbox" id="snapToggle" checked />
+        <span>스냅</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="gridToggle" checked />
+        <span>그리드</span>
+      </label>
+    </div>
+
+    <div class="zoombar">
+      <button class="btn" id="zoomOut" title="축소">-</button>
+      <div class="zoomLabel"><span id="zoomPct">100%</span></div>
+      <button class="btn" id="zoomIn" title="확대">+</button>
+      <button class="btn" id="zoomReset">Reset</button>
+      <div class="hint">Ctrl/⌘ + 휠: 확대/축소</div>
+    </div>
+
+    <div class="savehint" id="saveHint">저장됨</div>
+  </header>
+
+  <main class="layout" id="layout">
+    <aside class="side" id="side">
+      <div class="tabs" role="tablist" aria-label="패널 탭">
+        <button class="tab active" data-tab="wait" role="tab" aria-selected="true">대기</button>
+        <button class="tab" data-tab="assigned" role="tab" aria-selected="false">배치</button>
+        <button class="tab" data-tab="boxes" role="tab" aria-selected="false">박스</button>
+      </div>
+
+      <!-- WAIT -->
+      <section class="card tabPanel" data-panel="wait">
+        <h2>대기</h2>
+        <div class="row">
+          <input id="waitName" class="input" placeholder="이름 입력" />
+          <button id="addWait" class="btn primary">추가</button>
+        </div>
+
+        <div class="row">
+          <input id="waitSearch" class="input" placeholder="검색 (이름)" />
+</div>
+
+        <div class="list" id="waitList" aria-label="대기 목록"></div>
+        <div class="subhint">※ 대기 항목을 드래그해서 BOX에 드롭 (기존 배치자는 자동으로 대기로)</div>
+      </section>
+
+      <!-- ASSIGNED -->
+      <section class="card tabPanel hidden" data-panel="assigned">
+        <h2>배치</h2>
+        <div class="row">
+          <input id="assignedSearch" class="input" placeholder="검색 (이름/BOX)" />
+</div>
+        <div class="list" id="assignedList" aria-label="배치 목록"></div>
+        <div class="subhint">※ 목록 클릭 → 해당 BOX로 이동 + 하이라이트</div>
+      </section>
+
+      <!-- BOXES -->
+      <section class="card tabPanel hidden" data-panel="boxes">
+        <h2>박스(목록)</h2>
+        <div class="row">
+          <input id="boxName" class="input" placeholder="BOX 이름 (예: BOX 5)" />
+          <button id="addBox" class="btn primary">박스 추가</button>
+        </div>
+
+        <div class="row">
+          <input id="boxSearch" class="input" placeholder="검색 (BOX)" />
+</div>
+
+        <div class="list" id="boxList" aria-label="박스 목록"></div>
+        <div class="subhint">※ Shift+클릭 다중 선택 · 드래그로 같이 이동</div>
+      </section>
+    </aside>
+
+    <section class="boardWrap">
+      <div class="boardOuter" id="boardOuter">
+        <div class="board" id="board" aria-label="배치 보드">
+          <div class="grid" id="grid"></div>
+        </div>
+      </div>
+      <div class="footHelp">
+        <span class="kbd">Shift</span>+클릭: 다중 선택 ·
+        <span class="kbd">Tab</span>: 사이드바 ·
+        <span class="kbd">Del</span>: 선택 삭제 ·
+        이름 더블클릭: 대기로
+      </div>
+    </section>
+  </main>
+
+  <!-- Context Menu -->
+  <div class="ctx hidden" id="ctxMenu">
+    <button class="ctxItem" data-action="rename">BOX 이름 변경</button>
+    <button class="ctxItem" data-action="color">색상 변경</button>
+    <button class="ctxItem" data-action="unassign">대기로 보내기</button>
+    <div class="ctxSep"></div>
+    <button class="ctxItem danger" data-action="delete">박스 삭제</button>
+  </div>
+
+  <!-- Color popover -->
+  <div class="popover hidden" id="colorPop">
+    <div class="popTitle">색상</div>
+    <div class="colorRow">
+      <button class="swatch" data-color="green" title="green"></button>
+      <button class="swatch" data-color="blue" title="blue"></button>
+      <button class="swatch" data-color="olive" title="olive"></button>
+      <button class="swatch" data-color="pink" title="pink"></button>
+      <button class="swatch" data-color="slate" title="slate"></button>
+    </div>
+  </div>
+
+  <script src="./app.js?v=20260102-15"></script>
+</body>
+</html>

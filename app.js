@@ -566,13 +566,11 @@ function renderBoardBoxes(){
       : `<span class="pill good">DROP</span>`;
 
     boxEl.innerHTML = `
-      <div class="boxInner boxInnerSplit">
-        <div class="boxLeft">
-          <div class="watermark">${escapeHtml(b.name)}</div>
-        </div>
+      <div class="boxInner">
+        <div class="wmLeft">${escapeHtml(b.name)}</div>
 
-        <div class="boxBody">
-          <div class="boxActions">
+        <div class="boxContent">
+          <div class="boxHeaderRight">
             <button class="iconBtn" title="수정" data-edit>✎</button>
             <button class="iconBtn" title="삭제" data-delete>×</button>
           </div>
@@ -583,29 +581,27 @@ function renderBoardBoxes(){
           </div>
         </div>
       </div>
-`;
+    `;
+
     boxEls.set(b.id, boxEl);
     boxEl.classList.toggle("selected", ui.selected.has(b.id));
+
+    // edit
+    boxEl.querySelector("[data-edit]").addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const name = prompt("BOX 이름 변경", b.name);
+      if(name && name.trim()){
+        b.name = name.trim();
+        render();
+        saveState();
+      }
+    });
 
     // delete
     boxEl.querySelector("[data-delete]").addEventListener("click", (e)=>{
       e.stopPropagation();
       deleteBox(b.id);
     });
-
-    // edit (rename)
-    const editBtn = boxEl.querySelector("[data-edit]");
-    if(editBtn){
-      editBtn.addEventListener("click", (e)=>{
-        e.stopPropagation();
-        const name = prompt("BOX 이름 변경", b.name);
-        if(name && name.trim()){
-          b.name = name.trim();
-          render();
-          saveState();
-        }
-      });
-    }
 
     // unassign
     const unBtn = boxEl.querySelector("[data-unassign]");

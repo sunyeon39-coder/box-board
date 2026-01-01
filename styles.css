@@ -362,8 +362,31 @@ body{
   100%{ outline: 2px solid rgba(74,163,255,.0); }
 }
 
-.boxInner{ position:relative; height:100%; padding:14px; }
+.boxInner{ position:relative; height:100%; padding:14px; display:grid; grid-template-columns: 150px 1fr; gap:14px; }
 
+
+.wmLeft{
+  align-self:center;
+  justify-self:center;
+  font-size:120px;
+  font-weight:900;
+  letter-spacing:1px;
+  color: rgba(233,236,255,.18);
+  line-height:1;
+  pointer-events:none;
+  user-select:none;
+}
+.boxContent{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.boxHeaderRight{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  align-items:center;
+}
 .watermark{
   position:absolute;
   inset:auto 14px 18px 14px;
@@ -583,39 +606,6 @@ body{
 /* Hide old "드래그" pill in wait list if it exists anywhere */
 .item .pill.warn{ display:none !important; }
 
-
-/* === Split Box Layout (left big watermark / right content) === */
-.boxInnerSplit{
-  display:flex;
-  gap:14px;
-  height:100%;
-}
-.boxLeft{
-  flex:0 0 38%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  position:relative;
-}
-.boxLeft .watermark{
-  position:static;
-  inset:auto;
-  font-size:120px;
-  font-weight:900;
-  letter-spacing:1px;
-  color: rgba(233,236,255,.16);
-  pointer-events:none;
-  line-height:1;
-}
-.boxBody{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  padding-top:2px;
-}
-.boxActions{
-  display:flex;
-  justify-content:flex-end;
-  gap:8px;
-}
+/* Hide legacy watermark/title inside box */
+.watermark{ display:none; }
+.boxTop{ display:none; }

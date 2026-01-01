@@ -1,4 +1,4 @@
-/* v20260102-12 */
+/* v20260102-13 */
 
 :root{
   --bg:#0f1220;
@@ -345,10 +345,10 @@ body{
 .box{
   position:absolute;
   transform: translate3d(var(--x), var(--y), 0);
-  --bw: 560px;
-  --bh: 260px;
-  width: var(--bw);
-  height: var(--bh);
+  --w: 560px;
+  --h: 260px;
+  width: var(--w);
+  height: var(--h);
   border-radius: 22px;
   border:1px solid rgba(255,255,255,.10);
   box-shadow: 0 10px 22px rgba(0,0,0,.25);
@@ -358,9 +358,6 @@ body{
   will-change: transform;
   user-select:none;
 }
-.box[data-size="s"]{ --bw: 480px; --bh: 220px; }
-.box[data-size="m"]{ --bw: 560px; --bh: 260px; }
-.box[data-size="l"]{ --bw: 700px; --bh: 320px; }
 .box[data-color="blue"]{ background: rgba(74,163,255,.18); }
 .box[data-color="green"]{ background: rgba(56,211,159,.18); }
 .box[data-color="olive"]{ background: rgba(255,209,102,.14); }
@@ -417,9 +414,9 @@ body{
   z-index:5;
 }
 .actionBtn{
-  height:54px;
+  height:48px;
   padding:0 14px;
-  border-radius:18px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(10,12,24,.22);
   color: var(--text);
@@ -431,9 +428,9 @@ body{
 .actionBtn:active{transform: translateY(1px)}
 
 .iconBtn{
-  width:54px;
-  height:54px;
-  border-radius:18px;
+  width:48px;
+  height:48px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(10,12,24,.22);
   color:var(--text);
@@ -443,27 +440,39 @@ body{
 .iconBtn:hover{background: rgba(255,255,255,.08)}
 .iconBtn:active{transform: translateY(1px)}
 
-.resizeBtn{
+.resizeHandle{
   position:absolute;
-  left:18px;
-  bottom:18px;
-  z-index:5;
-  width:54px;
-  height:54px;
-  border-radius:18px;
+  right:14px;
+  bottom:14px;
+  width:34px;
+  height:34px;
+  border-radius:12px;
   border:1px solid rgba(255,255,255,.12);
-  background: rgba(10,12,24,.22);
-  color: var(--text);
-  cursor:pointer;
-  font-size:20px;
+  background: rgba(10,12,24,.18);
+  cursor: nwse-resize;
+  z-index:6;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  padding:6px;
 }
-.resizeBtn:hover{background: rgba(255,255,255,.08)}
+.resizeHandle::before{
+  content:"";
+  width:14px;
+  height:14px;
+  border-right:2px solid rgba(233,236,255,.45);
+  border-bottom:2px solid rgba(233,236,255,.45);
+  transform: rotate(0deg);
+  border-radius:2px;
+}
+.resizeHandle:hover{ background: rgba(255,255,255,.06); }
+
 .resizeBtn:active{transform: translateY(1px)}
 
 .slot{
   margin-right:14px;
   padding:14px 16px;
-  border-radius:18px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,.10);
   background: rgba(10,12,24,.18);
   min-height: 120px;

@@ -1,5 +1,5 @@
 
-/* Box Board - stable build (split box layout) v20260102-12 */
+/* Box Board - stable build (split box layout) v20260102-13 */
 (() => {
   const $ = (sel, el=document) => el.querySelector(sel);
   const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
@@ -174,7 +174,8 @@
       color: "green",
       assigned: null,
       assignedAt: null,
-      size: "m",
+      w: 560,
+      h: 260,
     };
     state.boxes.push(b);
     save(); renderAll();
@@ -321,9 +322,10 @@
 
   // ---------- Box drag/multi-select ----------
   let dragMode = null; // {startX, startY, origin: Map(id->{x,y})}
+  let resizeMode = null; // {boxId, startW, startH, startX, startY}
   const onBoxPointerDown = (e, boxId) => {
-    // ignore button clicks
-    if(e.target.closest("button")) return;
+    // ignore button clicks / resize handle
+    if(e.target.closest("button") || e.target.closest(".resizeHandle")) return;
 
     const isShift = e.shiftKey;
     const already = state.selectedBoxIds.includes(boxId);
@@ -379,10 +381,49 @@
     save();
   };
 
-  // ---------- Render ----------
-  const filterText = (s) => (s||"").trim().toLowerCase();
 
-  const renderWait = () => {
+  const startResize = (e, boxId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const b = state.boxes.find(x=>x.id===boxId);
+    if(!b) return;
+    const pt = getBoardPoint(e);
+    resizeMode = {
+      boxId,
+      startW: b.w || 560,
+      startH: b.h || 260,
+      startX: pt.x,
+      startY: pt.y,
+    };
+    window.addEventListener("pointermove", onResizeMove);
+    window.addEventListener("pointerup", stopResize, { once: true });
+  };
+
+  const onResizeMove = (e) => {
+    if(!resizeMode) return;
+    const b = state.boxes.find(x=>x.id===resizeMode.boxId);
+    if(!b) return;
+    const pt = getBoardPoint(e);
+    let nw = resizeMode.startW + (pt.x - resizeMode.startX);
+    let nh = resizeMode.startH + (pt.y - resizeMode.startY);
+    if(state.snap){
+      nw = snapTo(nw, 40);
+      nh = snapTo(nh, 40);
+    }
+    b.w = clamp(nw, 360, 1200);
+    b.h = clamp(nh, 180, 800);
+    renderBoxesOnly();
+  };
+
+  const stopResize = () => {
+    window.removeEventListener("pointermove", onResizeMove);
+    resizeMode = null;
+    save();
+  };
+
+
+  // ---------- Render ----------
+  const filterText = (s) => (s||"").trim().toLowerCase();  const renderWait = () => {
     const q = filterText(waitSearchEl.value);
     waitListEl.innerHTML = "";
     state.waiters
@@ -425,14 +466,6 @@
         actions.appendChild(delBtn);
 
         item.appendChild(left);
-      const actions = document.createElement("div");
-      actions.className = "itemActions";
-      const toWaitBtn = document.createElement("button");
-      toWaitBtn.className = "itemBtn";
-      toWaitBtn.textContent = "대기";
-      toWaitBtn.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(r.boxId); });
-      actions.appendChild(toWaitBtn);
-      item.appendChild(actions);
         item.appendChild(actions);
 
         attachWaiterDrag(item, w.id);
@@ -483,7 +516,16 @@
       left.appendChild(nm);
       left.appendChild(tm);
 
+      const actions = document.createElement("div");
+      actions.className = "itemActions";
+      const toWaitBtn = document.createElement("button");
+      toWaitBtn.className = "itemBtn";
+      toWaitBtn.textContent = "대기";
+      toWaitBtn.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(r.boxId); });
+      actions.appendChild(toWaitBtn);
+
       item.appendChild(left);
+      item.appendChild(actions);
       assignedListEl.appendChild(item);
     });
   };
@@ -536,9 +578,10 @@
     box.className = "box";
     box.dataset.boxId = b.id;
     box.dataset.color = b.color || "green";
-    box.dataset.size = b.size || "m";
-    box.style.setProperty("--x", `${b.x}px`);
+        box.style.setProperty("--x", `${b.x}px`);
     box.style.setProperty("--y", `${b.y}px`);
+    box.style.setProperty("--w", `${b.w or 560}px`);
+    box.style.setProperty("--h", `${b.h or 260}px`);
     box.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
 
     // drag over
@@ -572,41 +615,17 @@
     const editBtn = document.createElement("button");
     editBtn.className = "iconBtn";
     editBtn.title = "BOX 이름 수정";
-    editBtn.textContent = "✏️";
+    editBtn.textContent = "✏";
     editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); editBoxName(b.id); });
 
     const delBtn = document.createElement("button");
     delBtn.className = "iconBtn";
     delBtn.title = "BOX 삭제";
-    delBtn.textContent = "🗑️";
+    delBtn.textContent = "✕";
     delBtn.addEventListener("click", (e)=>{ e.stopPropagation(); if(confirm("이 BOX를 삭제할까요?")) deleteBox(b.id); });
-
-    if(b.assigned){
-      const toWait = document.createElement("button");
-      toWait.className = "actionBtn";
-      toWait.textContent = "대기로";
-      toWait.title = "대기로 보내기";
-      toWait.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(b.id); });
-      actions.appendChild(toWait);
-    }
 
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-
-    const resizeBtn = document.createElement("button");
-    resizeBtn.className = "resizeBtn";
-    resizeBtn.title = "박스 크기 변경";
-    resizeBtn.textContent = "⤢";
-    resizeBtn.addEventListener("click", (e)=>{
-      e.stopPropagation();
-      const order = ["s","m","l"];
-      const cur = (b.size || "m");
-      const idx = order.indexOf(cur);
-      const next = order[(idx<0?1:idx+1)%order.length];
-      b.size = next;
-      save();
-      renderBoxesOnly();
-    });
 
     const slot = document.createElement("div");
     slot.className = "slot";
@@ -649,11 +668,17 @@
     right.appendChild(actions);
     right.appendChild(slot);
         // place resize button at box corner (left-bottom)
-    inner.appendChild(resizeBtn);
 
     inner.appendChild(wm);
     inner.appendChild(right);
-    box.appendChild(inner);
+    
+
+    const rh = document.createElement("div");
+    rh.className = "resizeHandle";
+    rh.title = "모서리 드래그로 크기 조절";
+    rh.addEventListener("pointerdown", (e)=> startResize(e, b.id));
+    inner.appendChild(rh);
+box.appendChild(inner);
     return box;
   };
 
@@ -673,9 +698,10 @@
       if(!existing.get(b.id)) boardEl.appendChild(el);
       el.style.setProperty("--x", `${b.x}px`);
       el.style.setProperty("--y", `${b.y}px`);
+      el.style.setProperty("--w", `${b.w or 560}px`);
+      el.style.setProperty("--h", `${b.h or 260}px`);
       el.dataset.color = b.color || "green";
-      el.dataset.size = b.size || "m";
-      el.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
+            el.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
 
       // update watermark text if name changed
       const wm = $(".boxWatermark", el);
@@ -738,7 +764,7 @@
   // ensure default boxes if empty (optional)
   if(state.boxes.length === 0){
     ["1","2","3","4","5"].forEach((n,i)=>{
-      state.boxes.push({ id: uid(), name:n, x: 200 + i*620, y: 140, color:"green", assigned:null, assignedAt:null });
+      state.boxes.push({ id: uid(), name:n, x: 200 + i*620, y: 140, w:560, h:260, color:"green", assigned:null, assignedAt:null });
     });
   }
 

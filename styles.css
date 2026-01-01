@@ -1,3 +1,4 @@
+/* box-board styles v20260102-17 */
 :root{
   --bg:#0f1220;
   --panel:#171a2b;
@@ -607,4 +608,32 @@ body{
   border-bottom:2px solid rgba(255,255,255,.55);
   transform: rotate(0deg);
   opacity:.9;
+}
+
+
+/* prevent assigned panel clipping when box is resized small */
+.slot{ max-width:100%; box-sizing:border-box; }
+.slotLeft{ flex:1; min-width:0; }
+.slotActions{ flex:0 0 auto; }
+
+/* compact mode for small boxes */
+.box.compact .slot{
+  padding:10px;
+  min-height: 0;
+  flex-direction:column;
+  align-items:stretch;
+}
+.box.compact .slotActions{
+  justify-content:flex-end;
+  align-self:flex-end;
+}
+.box.compact .slotName{
+  font-size:16px;
+}
+.box.compact .slotTime{
+  font-size:12px;
+  flex-wrap:wrap;
+}
+.box.compact .badgeTime{
+  padding:3px 8px;
 }

@@ -1,3 +1,4 @@
+// box-board build v20260102-17
 /* Box Board (Full)
    - 위치 밀림 방지: BOX는 transform translate3d만 사용 (left/top 금지)
    - 줌(scale) 상태에서 포인터 좌표 보정: (client - rect) / zoom
@@ -549,6 +550,8 @@ function renderBoardBoxes(){
   for(const b of state.boxes){
     const boxEl = document.createElement("div");
     boxEl.className = "box";
+    // compact layout when box is small to prevent clipping
+    boxEl.classList.toggle("compact", (b.w||0) < 290 || (b.h||0) < 180);
     boxEl.dataset.boxId = b.id;
     boxEl.dataset.color = b.color || "green";
     boxEl.style.setProperty("--x", `${b.x}px`);

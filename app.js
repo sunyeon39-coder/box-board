@@ -1,5 +1,5 @@
 
-/* Box Board - stable build (split box layout) */
+/* Box Board - stable build (split box layout) v20260102-11 */
 (() => {
   const $ = (sel, el=document) => el.querySelector(sel);
   const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
@@ -174,6 +174,7 @@
       color: "green",
       assigned: null,
       assignedAt: null,
+      size: "m",
     };
     state.boxes.push(b);
     save(); renderAll();
@@ -388,7 +389,7 @@
       .filter(w => !q || w.name.toLowerCase().includes(q))
       .forEach(w=>{
         const item = document.createElement("div");
-        item.className = "item";
+        item.className = "item waitItem";
         item.dataset.waiterId = w.id;
 
         const left = document.createElement("div");
@@ -527,6 +528,7 @@
     box.className = "box";
     box.dataset.boxId = b.id;
     box.dataset.color = b.color || "green";
+    box.dataset.size = b.size || "m";
     box.style.setProperty("--x", `${b.x}px`);
     box.style.setProperty("--y", `${b.y}px`);
     box.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
@@ -571,8 +573,32 @@
     delBtn.textContent = "🗑️";
     delBtn.addEventListener("click", (e)=>{ e.stopPropagation(); if(confirm("이 BOX를 삭제할까요?")) deleteBox(b.id); });
 
+    if(b.assigned){
+      const toWait = document.createElement("button");
+      toWait.className = "actionBtn";
+      toWait.textContent = "대기로";
+      toWait.title = "대기로 보내기";
+      toWait.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(b.id); });
+      actions.appendChild(toWait);
+    }
+
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
+
+    const resizeBtn = document.createElement("button");
+    resizeBtn.className = "resizeBtn";
+    resizeBtn.title = "박스 크기 변경";
+    resizeBtn.textContent = "⤢";
+    resizeBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const order = ["s","m","l"];
+      const cur = (b.size || "m");
+      const idx = order.indexOf(cur);
+      const next = order[(idx<0?1:idx+1)%order.length];
+      b.size = next;
+      save();
+      renderBoxesOnly();
+    });
 
     const slot = document.createElement("div");
     slot.className = "slot";
@@ -604,14 +630,7 @@
 
       left.appendChild(nm);
       left.appendChild(row);
-
-      const btn = document.createElement("button");
-      btn.className = "smallBtn";
-      btn.textContent = "대기로";
-      btn.addEventListener("click", (e)=>{ e.stopPropagation(); sendBoxToWait(b.id); });
-
       slot.appendChild(left);
-      slot.appendChild(btn);
     }else{
       const hint = document.createElement("div");
       hint.className = "dropHint";
@@ -621,6 +640,7 @@
 
     right.appendChild(actions);
     right.appendChild(slot);
+    right.appendChild(resizeBtn);
 
     inner.appendChild(wm);
     inner.appendChild(right);
@@ -645,6 +665,7 @@
       el.style.setProperty("--x", `${b.x}px`);
       el.style.setProperty("--y", `${b.y}px`);
       el.dataset.color = b.color || "green";
+      el.dataset.size = b.size || "m";
       el.classList.toggle("selected", state.selectedBoxIds.includes(b.id));
 
       // update watermark text if name changed

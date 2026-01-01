@@ -3,10 +3,6 @@
    - 줌(scale) 상태에서 포인터 좌표 보정: (client - rect) / zoom
 */
 
-const VERSION = "v2.1.1";
-console.log("[BoxBoard]", VERSION);
-window.__BOXBOARD_VERSION__ = VERSION;
-
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -235,19 +231,30 @@ if(clearBoxSearchBtn) clearBoxSearchBtn.addEventListener("click", ()=>{ boxSearc
 
 /* ---------- Assign / Unassign ---------- */
 function assignWaiterToBox(waiterId, boxId){
-  const wIdx = state.waiters.findIndex(w => w.id === waiterId);
   const b = getBoxById(boxId);
-  if(wIdx < 0 || !b) return;
+  if(!b) return;
 
+  // ✅ 중요: 기존 배치자를 대기로 unshift 하기 전에,
+  // 먼저 드래그한 대기자를 "id 기준"으로 찾아서 제거해야 인덱스 밀림이 안 생김.
+  const wIdx = state.waiters.findIndex(w => w.id === waiterId);
+  if(wIdx < 0) return;
   const w = state.waiters[wIdx];
 
-  // 기존 배치자 있으면 대기로 복귀
+  // 1) 드래그한 사람을 대기에서 먼저 제거
+  state.waiters.splice(wIdx, 1);
+
+  // 2) 박스에 기존 배치자가 있으면 대기 맨 위로 복귀
   if(b.assigned){
-    state.waiters.unshift({ id: uid("w"), name: b.assigned.name, createdAt: b.assigned.assignedAt ?? now() });
+    state.waiters.unshift({
+      id: uid("w"),
+      name: b.assigned.name,
+      // 배치 시작 시각을 대기 시작으로 간주 (원하면 now()로 바꿔도 됨)
+      createdAt: b.assigned.assignedAt ?? now()
+    });
   }
 
+  // 3) 새 배치 적용
   b.assigned = { id: uid("a"), name: w.name, assignedAt: now() };
-  state.waiters.splice(wIdx, 1);
 
   render();
   saveState();
@@ -834,14 +841,6 @@ function migrate(){
   }
 }
 migrate();
-
-// show version in UI so you can confirm cache/deploy issues
-{
-  const brand = document.querySelector(".brand");
-  if(brand) brand.textContent = `Box Board `;
-  document.title = `Box Board `;
-}
-
 setTab("wait");
 applyZoom();
 snapToggle.checked = !!state.snap;

@@ -191,9 +191,9 @@ function applyZoom(){
   zoomPctEl.textContent = `${Math.round(z*100)}%`;
   saveState();
 }
-zoomOutBtn.addEventListener("click", ()=>{ state.zoom = +(state.zoom - 0.1).toFixed(2); applyZoom(); });
-zoomInBtn.addEventListener("click", ()=>{ state.zoom = +(state.zoom + 0.1).toFixed(2); applyZoom(); });
-zoomResetBtn.addEventListener("click", ()=>{ state.zoom = 1; applyZoom(); });
+if (zoomOutBtn) zoomOutBtn.addEventListener("click", ()=>{ state.zoom = +(state.zoom - 0.1).toFixed(2); applyZoom(); });
+if (zoomInBtn) zoomInBtn.addEventListener("click", ()=>{ state.zoom = +(state.zoom + 0.1).toFixed(2); applyZoom(); });
+if (zoomResetBtn) zoomResetBtn.addEventListener("click", ()=>{ state.zoom = 1; applyZoom(); });
 
 boardOuter.addEventListener("wheel", (e)=>{
   const isZoomGesture = e.ctrlKey || e.metaKey;
@@ -307,7 +307,7 @@ function deleteSelected(){
   render();
   saveState();
 }
-deleteSelectedBtn.addEventListener("click", deleteSelected);
+if (deleteSelectedBtn) deleteSelectedBtn.addEventListener("click", deleteSelected);
 
 /* Delete key */
 window.addEventListener("keydown", (e)=>{
@@ -356,7 +356,7 @@ function getSelectedBoxes(){
 }
 function withSnap(v){ return state.snap ? snapVal(v, 20) : v; }
 
-alignHBtn.addEventListener("click", ()=>{
+if (alignHBtn) alignHBtn.addEventListener("click", ()=>{
   const bs = getSelectedBoxes();
   if(bs.length < 2) return;
   const y = Math.round(bs.reduce((a,b)=>a+b.y,0)/bs.length);
@@ -364,7 +364,7 @@ alignHBtn.addEventListener("click", ()=>{
   updateAllBoxPositions();
   saveState();
 });
-alignVBtn.addEventListener("click", ()=>{
+if (alignVBtn) alignVBtn.addEventListener("click", ()=>{
   const bs = getSelectedBoxes();
   if(bs.length < 2) return;
   const x = Math.round(bs.reduce((a,b)=>a+b.x,0)/bs.length);
@@ -915,8 +915,8 @@ function migrate(){
 migrate();
 setTab("wait");
 applyZoom();
-snapToggle.checked = !!state.snap;
-gridToggle.checked = !!state.showGrid;
+if (snapToggle) snapToggle.checked = !!state.snap;
+if (gridToggle) gridToggle.checked = !!state.showGrid;
 applyGrid();
 render();
 setInterval(tickTimers, 500);

@@ -466,11 +466,14 @@ function renderWaiters(){
     el.dataset.waiterId = w.id;
 
     el.innerHTML = `
-      <div class="left">
-        <div class="name">${escapeHtml(w.name)}</div>
-        <div class="meta">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
+      <input class="waitChk" type="checkbox" aria-label="선택" />
+      <div class="waitLine">
+        <div class="waitName">${escapeHtml(w.name || "")}</div>
+        <div class="waitTime">대기 ${fmtTime(now() - (w.createdAt || now()))}</div>
       </div>
-      <div class="pill warn">드래그</div>
+      <div class="itemActions">
+        <button class="itemBtn danger" data-wid-del="${w.id}">삭제</button>
+      </div>
     `;
 
     el.addEventListener("dragstart", (e)=>{

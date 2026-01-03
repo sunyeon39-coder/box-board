@@ -636,3 +636,7 @@ body{
   position: relative;
   z-index: 80;
 }
+
+
+/* Wait list checkbox */
+.waitChk{width:16px;height:16px;accent-color: var(--blue);flex:0 0 auto;opacity:.9}

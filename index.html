@@ -4,62 +4,107 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Box Board</title>
-
-  <!-- Critical fallback so it never looks "white / broken" even if CSS fails -->
-  <style>
-    html,body{height:100%;margin:0;background:#0f1220;color:#e9ecff;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif}
-    .noscript{padding:16px}
-    /* while real css loads */
-    body._preload *{visibility:hidden}
-    body._preload ._boot{visibility:visible;display:flex;align-items:center;justify-content:center;height:100vh;opacity:.8}
-  </style>
+  <link rel="stylesheet" href="./styles.updated.css?v=1" />
 </head>
-<body class="_preload">
-  <div class="_boot">Loading…</div>
+<body>
+  <div class="topbar">
+    <div class="brand">Box Board</div>
+    <button class="btn" id="toggleSide" title="사이드바 접기/펼치기">☰</button>
 
-  <noscript><div class="noscript">JavaScript가 꺼져있으면 동작하지 않습니다.</div></noscript>
+    <div class="toolbar">
+      <button class="btn" id="alignH">가로정렬</button>
+      <button class="btn" id="alignV">세로정렬</button>
+      <button class="btn" id="distributeH">가로간격</button>
+      <button class="btn" id="distributeV">세로간격</button>
 
-  <!-- Cache-bust loader: always fetch latest CSS/JS even on Safari/GitHub Pages -->
-  <script>
-    (function(){
-      var v = Date.now().toString(36);
-      function loadCSS(href){
-        return new Promise(function(res){
-          var l=document.createElement('link');
-          l.rel='stylesheet';
-          l.href=href + (href.indexOf('?')>-1?'&':'?') + 'v=' + v;
-          l.onload=function(){res(true)};
-          l.onerror=function(){res(false)};
-          document.head.appendChild(l);
-        });
-      }
-      function loadJS(src){
-        return new Promise(function(res,rej){
-          var s=document.createElement('script');
-          s.src=src + (src.indexOf('?')>-1?'&':'?') + 'v=' + v;
-          s.defer=true;
-          s.onload=function(){res(true)};
-          s.onerror=function(){rej(new Error('Failed to load '+src))};
-          document.body.appendChild(s);
-        });
-      }
+      <div class="sep"></div>
 
-      // Prefer standard filenames (easy), fallback to hashed if user kept those around
-      Promise.resolve()
-        .then(function(){ return loadCSS('./styles.css'); })
-        .then(function(ok){ if(!ok) return loadCSS('./styles.2900.css'); })
-        .then(function(){
-          // now load app
-          return loadJS('./app.js').catch(function(){
-            return loadJS('./app.2900.js');
-          });
-        })
-        .finally(function(){
-          // let real layout show
-          document.body.classList.remove('_preload');
-          var boot=document.querySelector('._boot'); if(boot) boot.remove();
-        });
-    })();
-  </script>
+      <button class="btn primary" id="deleteSelected">선택 삭제</button>
+
+      <div class="sep"></div>
+
+      <label class="toggle"><input id="snapToggle" type="checkbox" checked /> 스냅</label>
+      <label class="toggle"><input id="gridToggle" type="checkbox" checked /> 그리드</label>
+    </div>
+
+    <div class="zoombar">
+      <button class="btn" id="zoomOut">-</button>
+      <div class="zoomLabel" id="zoomPct">100%</div>
+      <button class="btn" id="zoomIn">+</button>
+      <button class="btn" id="zoomReset">Reset</button>
+      <div class="hint">Ctrl/⌘ + 휠 : 확대/축소</div>
+      <div class="savehint" id="saveHint">저장됨</div>
+    </div>
+  </div>
+
+  <div class="layout" id="layout">
+    <aside class="side">
+      <div class="tabs">
+        <button class="tab tabBtn active" data-tab="wait">대기</button>
+        <button class="tab tabBtn" data-tab="assigned">배치</button>
+        <button class="tab tabBtn" data-tab="box">박스</button>
+      </div>
+
+      <!-- 대기 -->
+      <section class="card tabPanel" data-panel="wait">
+        <h2>대기</h2>
+        <div class="row">
+          <input class="input" id="waitName" placeholder="이름 입력" />
+          <button class="btn primary" id="addWait">추가</button>
+        </div>
+        <div class="row">
+          <input class="input" id="waitSearch" placeholder="검색 (이름)" />
+          <button class="btn" id="clearWaitSearch">×</button>
+        </div>
+        <div class="list" id="waitList"></div>
+        <div class="subhint">※ 대기 항목을 드래그해서 BOX에 드롭 (기존 배치자는 자동으로 대기로)</div>
+      </section>
+
+      <!-- 배치 -->
+      <section class="card tabPanel hidden" data-panel="assigned">
+        <h2>배치</h2>
+        <div class="row">
+          <input class="input" id="assignedSearch" placeholder="검색 (이름/BOX)" />
+          <button class="btn" id="clearAssignedSearch">×</button>
+        </div>
+        <div class="list" id="assignedList"></div>
+      </section>
+
+      <!-- 박스 -->
+      <section class="card tabPanel hidden" data-panel="box">
+        <h2>박스</h2>
+        <div class="row">
+          <input class="input" id="boxName" placeholder="BOX 이름" />
+          <button class="btn primary" id="addBox">추가</button>
+        </div>
+        <div class="row">
+          <input class="input" id="boxSearch" placeholder="검색 (BOX)" />
+          <button class="btn" id="clearBoxSearch">×</button>
+        </div>
+        <div class="list" id="boxList"></div>
+      </section>
+    </aside>
+
+    <main class="boardWrap">
+      <div class="boardOuter" id="boardOuter">
+        <div class="board" id="board">
+          <div class="grid" id="grid"></div>
+          <!-- boxes will be injected here by app.js -->
+        </div>
+      </div>
+      <div class="footHelp">
+        <span class="kbd">Shift</span> + 클릭: 다중 선택 ·
+        <span class="kbd">Tab</span> : 사이드바 ·
+        <span class="kbd">Del</span> : 선택 삭제 ·
+        이름 더블클릭: 대기로
+      </div>
+    </main>
+  </div>
+
+  <!-- context menu / popover anchors -->
+  <div class="ctx hidden" id="ctxMenu"></div>
+  <div class="popover hidden" id="colorPop"></div>
+
+  <script src="./app.updated.js?v=1" defer></script>
 </body>
 </html>

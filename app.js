@@ -73,7 +73,7 @@ let ui = {
 const boxEls = new Map(); // boxId -> element (for fast updates)
 
 // build tag (캐시 확인용)
-console.log('[BoxBoard] build "20260103-2600"');
+console.log('[BoxBoard] build "20260103-2700"');
 
 /* ---------- Utils ---------- */
 function uid(prefix="id"){
@@ -515,13 +515,14 @@ function renderWaiters(){
     const idx = indexMap.get(w.id) || "";
     const t = fmtTime(now() - (w.createdAt || now()));
 
+    // old-favorite layout: name + countdown pill + edit button (no big icons)
     el.innerHTML = `
       <div class="waitIdx">${idx}</div>
       <div class="waitMain">
         <div class="waitName">${escapeHtml(w.name)}</div>
         <div class="waitPill">대기 ${t}</div>
       </div>
-      <button class="waitDel" type="button" data-wdel>삭제</button>
+      <button class="waitEdit" type="button" data-wedit title="이름 수정">✎</button>
     `;
 
     el.addEventListener("dragstart", (e)=>{
@@ -530,10 +531,24 @@ function renderWaiters(){
     });
     el.addEventListener("dragend", ()=>{ ui.dragWaiterId = null; });
 
-    // delete waiter (old layout style)
-    el.querySelector("[data-wdel]").addEventListener("click", (e)=>{
+    // edit waiter name
+    el.querySelector("[data-wedit]").addEventListener("click", (e)=>{
       e.stopPropagation();
-      state.waiters = state.waiters.filter(x=>x.id!==w.id);
+      const next = prompt("이름 수정", w.name || "");
+      if(next === null) return;
+      const trimmed = (next || "").trim();
+
+      // If cleared, treat as delete (with confirm) to avoid extra UI buttons
+      if(trimmed === ""){
+        const ok = confirm("이 항목을 삭제할까요?");
+        if(!ok) return;
+        state.waiters = state.waiters.filter(x=>x.id!==w.id);
+        render();
+        saveState();
+        return;
+      }
+
+      w.name = trimmed;
       render();
       saveState();
     });

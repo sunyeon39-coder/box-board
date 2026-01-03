@@ -402,9 +402,9 @@ body{
 
 .iconBtn{
   /* old-look: smaller corner buttons (less intrusive) */
-  width:34px;
-  height:34px;
-  border-radius:12px;
+  width:28px;
+  height:28px;
+  border-radius:10px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(10,12,24,.16);
   color:var(--text);
@@ -499,17 +499,21 @@ body{
   color: rgba(233,236,255,.9);
   white-space:nowrap;
 }
-.waitDel{
-  padding:7px 10px;
-  border-radius:12px;
-  border:1px solid rgba(255,92,124,.35);
-  background: rgba(255,92,124,.10);
-  color: rgba(255,199,209,.95);
+.waitEdit{
+  width:40px;
+  height:40px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(10,12,24,.18);
+  color: rgba(233,236,255,.92);
   font-weight:900;
   cursor:pointer;
   flex: 0 0 auto;
+  display:grid;
+  place-items:center;
 }
-.waitDel:hover{ background: rgba(255,92,124,.14); }
+.waitEdit:hover{ background: rgba(255,255,255,.08); }
+.waitEdit:active{ transform: translateY(1px); }
 .miniIcon{
   width:40px;
   height:40px;

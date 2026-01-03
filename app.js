@@ -161,7 +161,11 @@ function setTab(tab){
 
 /* ---------- Sidebar ---------- */
 function toggleSide(){ layout.classList.toggle("sideCollapsed"); }
-toggleSideBtn.addEventListener("click", toggleSide);
+
+if (toggleSideBtn) {
+  toggleSideBtn.addEventListener("click", toggleSide);
+}
+
 window.addEventListener("keydown", (e)=>{
   if(e.key === "Tab"){
     e.preventDefault();

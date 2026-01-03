@@ -73,7 +73,7 @@ let ui = {
 const boxEls = new Map(); // boxId -> element (for fast updates)
 
 // build tag (캐시 확인용)
-console.log('[BoxBoard] build "20260103-2700"');
+console.log('[BoxBoard] build "20260103-2800"');
 
 /* ---------- Utils ---------- */
 function uid(prefix="id"){
@@ -656,8 +656,9 @@ function renderBoardBoxes(){
     boxEl.dataset.color = b.color || "green";
     boxEl.style.setProperty("--x", `${b.x}px`);
     boxEl.style.setProperty("--y", `${b.y}px`);
-    const bw = (typeof b.w === "number") ? b.w : 360;
-    const bh = (typeof b.h === "number") ? b.h : 220;
+    // 기본 박스 크기(사용자가 원했던 썸네일 느낌의 컴팩트 카드)
+    const bw = (typeof b.w === "number") ? b.w : 280;
+    const bh = (typeof b.h === "number") ? b.h : 170;
     boxEl.style.setProperty("--w", `${bw}px`);
     boxEl.style.setProperty("--h", `${bh}px`);
 
@@ -674,11 +675,12 @@ function renderBoardBoxes(){
       </div>` : `<div class="dropHint">여기에 대기자를 드롭</div>`;
 
     const topUnassignHtml = b.assigned
-      ? `<button class="smallBtn" data-unassign title="대기로">대기로</button>`
+      ? `<button class="smallBtn topPill" data-unassign title="대기로">대기로</button>`
       : ``;
 
     boxEl.innerHTML = `
       <div class="boxInner">
+        <div class="cornerLabel">${escapeHtml(b.name)}</div>
         <div class="watermark">${escapeHtml(b.name)}</div>
 
         <div class="boxTop">

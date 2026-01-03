@@ -364,6 +364,23 @@ body{
 
 .boxInner{ position:relative; height:100%; padding:14px; }
 
+/* 작은 숫자 라벨 (썸네일처럼 좌상단에 표시) */
+.cornerLabel{
+  position:absolute;
+  top:10px;
+  left:12px;
+  z-index: 6;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.2px;
+  padding:4px 8px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(10,12,24,.18);
+  color: rgba(233,236,255,.92);
+  pointer-events:none;
+}
+
 .watermark{
   position:absolute;
   left:18px;
@@ -396,20 +413,20 @@ body{
   top:12px;
   right:12px;
   display:flex;
-  gap:10px;
+  gap:6px;
   align-items:center;
 }
 
 .iconBtn{
   /* old-look: smaller corner buttons (less intrusive) */
-  width:28px;
-  height:28px;
+  width:24px;
+  height:24px;
   border-radius:10px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(10,12,24,.16);
   color:var(--text);
   cursor:pointer;
-  font-size:16px;
+  font-size:14px;
   position: relative;
   display:grid;
   place-items:center;
@@ -423,8 +440,21 @@ body{
 .iconBtn::before{
   content:"";
   position:absolute;
-  inset:-10px;
+  inset:-12px;
 }
+
+/* 박스 상단 '대기로' 버튼은 작고 덜 튀게 */
+.topPill{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(233,236,255,.9);
+  font-weight:900;
+  font-size:12px;
+}
+.topPill:hover{ background: rgba(255,255,255,.10); }
+.topPill:active{ transform: translateY(1px); }
 
 .slot{
   /* 오른쪽 카드(배치/드롭 영역) - 박스 크기 변화에 맞춰 같이 이동 */
@@ -565,6 +595,14 @@ body{
   background: rgba(255,255,255,.06);
   color:var(--text);
   cursor:pointer;
+}
+.smallBtn.topPill{
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  background: rgba(10,12,24,.16);
+  border-color: rgba(255,255,255,.10);
 }
 .smallBtn:hover{background: rgba(255,255,255,.1)}
 .smallBtn.danger{

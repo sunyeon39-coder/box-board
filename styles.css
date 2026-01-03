@@ -303,3 +303,115 @@ button,input{font:inherit}
   .toolbar{ display:none; }
   .hint{ display:none; }
 }
+
+
+/* === Box resize handle (bottom-right) === */
+.boxResizer{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  cursor: nwse-resize;
+  z-index: 9;
+  pointer-events: auto;
+}
+.boxResizer:before{
+  content:"";
+  position:absolute;
+  right:8px; bottom:8px;
+  width:10px; height:10px;
+  border-right:2px solid rgba(255,255,255,.55);
+  border-bottom:2px solid rgba(255,255,255,.55);
+  opacity:.9;
+}
+
+/* Slot right-side actions (edit/delete etc.) */
+.slotActions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.smallBtn{
+  padding:8px 10px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:900;
+  font-size:12px;
+}
+.smallBtn:hover{background: rgba(255,255,255,.10)}
+.smallBtn.danger{
+  border-color: rgba(255,92,124,.35);
+  background: rgba(255,92,124,.12);
+  color: #ffd6de;
+}
+
+/* Box on board (missing in some versions) */
+.box{
+  position:absolute;
+  transform: translate3d(var(--x), var(--y), 0);
+  width: var(--w, 360px);
+  height: var(--h, 220px);
+  border-radius: 22px;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow: 0 10px 22px rgba(0,0,0,.25);
+  background: rgba(74,163,255,.18);
+  backdrop-filter: blur(6px);
+  overflow:hidden;
+  user-select:none;
+}
+.boxInner{ position:relative; height:100%; padding:14px; }
+.watermark{
+  position:absolute;
+  left:18px;
+  top:50%;
+  transform: translateY(-50%);
+  font-size: clamp(56px, 18vw, 150px);
+  font-weight:900;
+  letter-spacing:1px;
+  color: rgba(233,236,255,.18);
+  pointer-events:none;
+  white-space:nowrap;
+  z-index: 1;
+}
+.boxTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  position: relative;
+  z-index: 5;
+}
+.boxTitle{ font-weight:900; font-size:22px; letter-spacing:.2px; }
+.slot{
+  position:absolute;
+  right:14px;
+  top:64px;
+  width: min(390px, calc(100% - 170px));
+  padding:12px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(10,12,24,.18);
+  min-height: 98px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  z-index: 4;
+}
+.slotLeft{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.slotName{
+  font-weight:900;
+  font-size:18px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.dropHint{ font-size:13px; color: rgba(233,236,255,.75); }

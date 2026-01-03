@@ -431,19 +431,48 @@
       slotLeft.appendChild(hint);
 
       const slotActions = document.createElement("div");
-      slotActions.className = "itemActions";
+      slotActions.className = "slotActions";
 
       if (b.person) {
+        const editBtn = document.createElement("button");
+        editBtn.className = "smallBtn";
+        editBtn.textContent = "수정";
+        editBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const next = prompt("이름 수정", b.person.name || "");
+          if (next === null) return;
+          const v = String(next).trim();
+          if (!v) return;
+          b.person.name = v;
+          saveState();
+          renderAll();
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "smallBtn danger";
+        delBtn.textContent = "삭제";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // remove person from this box only (not send to wait)
+          b.person = null;
+          saveState();
+          renderAll();
+        });
+
         const un = document.createElement("button");
-        un.className = "itemBtn";
+        un.className = "smallBtn";
         un.textContent = "대기로";
-        un.addEventListener("click", () => {
+        un.addEventListener("click", (e) => {
+          e.stopPropagation();
           const p = b.person;
           b.person = null;
           addToWait({ id: p.id, name: p.name, createdAt: now() });
           saveState();
           renderAll();
         });
+
+        slotActions.appendChild(editBtn);
+        slotActions.appendChild(delBtn);
         slotActions.appendChild(un);
       }
 
@@ -477,6 +506,38 @@
       inner.appendChild(top);
       inner.appendChild(slot);
       el.appendChild(inner);
+
+      // Resizer (bottom-right)
+      const resizer = document.createElement("div");
+      resizer.className = "boxResizer";
+      el.appendChild(resizer);
+
+      let resizing = null;
+      resizer.addEventListener("mousedown", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        resizing = { startX: e.clientX, startY: e.clientY, w: b.w, h: b.h };
+        document.body.style.userSelect = "none";
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!resizing) return;
+        const dx = (e.clientX - resizing.startX) / zoom;
+        const dy = (e.clientY - resizing.startY) / zoom;
+        const minW = 260;
+        const minH = 170;
+        b.w = Math.max(minW, Math.round(resizing.w + dx));
+        b.h = Math.max(minH, Math.round(resizing.h + dy));
+        el.style.setProperty("--w", `${b.w}px`);
+        el.style.setProperty("--h", `${b.h}px`);
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!resizing) return;
+        resizing = null;
+        document.body.style.userSelect = "";
+        saveState();
+      });
 
       // Simple drag box move (single)
       let drag = null;

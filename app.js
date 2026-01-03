@@ -99,8 +99,6 @@ function escapeHtml(str){
 }
 
 function displayWaitName(name){
-  // 사용자 요청: 입력한 이름은 그대로 두고, 옆에 '"", "", ""'를 붙여서 표시
-  const suffix = '"", "", ""';
   const base = (name || "").trim();
   return base ? `${base} ${suffix}` : suffix;
 }

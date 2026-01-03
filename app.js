@@ -1,3 +1,4 @@
+console.log('[BoxBoard] build 20260103-2301 loaded');
 /* Box Board (Full)
    - 위치 밀림 방지: BOX는 transform translate3d만 사용 (left/top 금지)
    - 줌(scale) 상태에서 포인터 좌표 보정: (client - rect) / zoom
@@ -957,3 +958,5 @@ document.addEventListener("click", (e)=>{
     renderWaiters();
   }
 });
+
+try{const bb=document.getElementById('buildBadge'); if(bb) bb.textContent='build 20260103-2301';}catch(e){}

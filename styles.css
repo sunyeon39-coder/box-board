@@ -239,3 +239,5 @@ body{
   background:rgba(255,255,255,.05);
   font-weight:800;
 }
+
+#buildBadge{opacity:.6;font-size:12px;margin-left:10px}

@@ -413,8 +413,46 @@
 
       top.appendChild(title);
 
+
+      // Box top actions (right-top): rename / delete
+      const boxActions = document.createElement("div");
+      boxActions.className = "boxActions";
+
+      const renameBoxBtn = document.createElement("button");
+      renameBoxBtn.className = "actionBtn";
+      renameBoxBtn.textContent = "수정";
+      renameBoxBtn.title = "BOX 이름 수정";
+      renameBoxBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const next = prompt("BOX 이름 변경", b.name || "");
+        if (next === null) return;
+        const v = String(next).trim();
+        if (!v) return;
+        b.name = v;
+        saveState();
+        renderAll();
+      });
+
+      const delBoxBtn = document.createElement("button");
+      delBoxBtn.className = "actionBtn danger";
+      delBoxBtn.textContent = "삭제";
+      delBoxBtn.title = "BOX 삭제";
+      delBoxBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ok = confirm(`"${b.name}" 박스를 삭제할까요?`);
+        if (!ok) return;
+        deleteBox(b.id);
+      });
+
+      boxActions.appendChild(renameBoxBtn);
+      boxActions.appendChild(delBoxBtn);
+      inner.appendChild(boxActions);
+
       const slot = document.createElement("div");
       slot.className = "slot";
+      slot.style.position = "absolute";
+      slot.style.overflow = "hidden";
+      slot.dataset.slot = "1";
 
       const slotLeft = document.createElement("div");
       slotLeft.className = "slotLeft";
@@ -435,7 +473,7 @@
 
       if (b.person) {
         const editBtn = document.createElement("button");
-        editBtn.className = "smallBtn";
+        editBtn.className = "actionBtn";
         editBtn.textContent = "수정";
         editBtn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -449,7 +487,7 @@
         });
 
         const delBtn = document.createElement("button");
-        delBtn.className = "smallBtn danger";
+        delBtn.className = "actionBtn danger";
         delBtn.textContent = "삭제";
         delBtn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -460,7 +498,7 @@
         });
 
         const un = document.createElement("button");
-        un.className = "smallBtn";
+        un.className = "actionBtn";
         un.textContent = "대기로";
         un.addEventListener("click", (e) => {
           e.stopPropagation();

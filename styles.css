@@ -330,12 +330,6 @@ button,input{font:inherit}
   opacity:.9;
 }
 
-/* Slot right-side actions (edit/delete etc.) */
-.slotActions{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
 .smallBtn{
   padding:8px 10px;
   border-radius:14px;
@@ -415,3 +409,50 @@ button,input{font:inherit}
   text-overflow:ellipsis;
 }
 .dropHint{ font-size:13px; color: rgba(233,236,255,.75); }
+
+
+/* === Compact action buttons (top-right) === */
+.slotActions{
+  position:absolute;
+  right:10px;
+  top:10px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  z-index: 6;
+}
+
+.actionBtn{
+  width:38px;
+  height:38px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(10,12,24,.25);
+  color: rgba(233,236,255,.92);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  letter-spacing:-.2px;
+}
+.actionBtn:hover{ background: rgba(255,255,255,.08); }
+.actionBtn:active{ transform: translateY(1px); }
+.actionBtn.danger{
+  border-color: rgba(255,92,124,.35);
+  background: rgba(255,92,124,.14);
+  color:#ffd6de;
+}
+
+/* Box top-right actions */
+.boxActions{
+  position:absolute;
+  right:12px;
+  top:12px;
+  display:flex;
+  gap:8px;
+  z-index: 7;
+}
+
+/* keep content away from top-right buttons */
+.slotLeft{ padding-top: 34px; }

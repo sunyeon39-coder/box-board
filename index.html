@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Box Board (Full)</title>
-  <link rel="stylesheet" href="./styles.css?v=20260103-1750" />
+  <!-- cache-bust -->
+  <link rel="stylesheet" href="./styles.css?v=20260103-1801" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Box Board <span style="opacity:.65;font-weight:700;font-size:12px">(20260103-1745)</span></div>
+    <div class="brand">Box Board</div>
 
     <div class="toolbar">
       <button class="btn" id="toggleSide" title="사이드바 접기/펼치기 (Tab)">☰</button>
@@ -62,7 +63,7 @@
 
         <div class="row">
           <input id="waitSearch" class="input" placeholder="검색 (이름)" />
-</div>
+        </div>
 
         <div class="list" id="waitList" aria-label="대기 목록"></div>
         <div class="subhint">※ 대기 항목을 드래그해서 BOX에 드롭 (기존 배치자는 자동으로 대기로)</div>
@@ -73,7 +74,7 @@
         <h2>배치</h2>
         <div class="row">
           <input id="assignedSearch" class="input" placeholder="검색 (이름/BOX)" />
-</div>
+        </div>
         <div class="list" id="assignedList" aria-label="배치 목록"></div>
         <div class="subhint">※ 목록 클릭 → 해당 BOX로 이동 + 하이라이트</div>
       </section>
@@ -88,7 +89,7 @@
 
         <div class="row">
           <input id="boxSearch" class="input" placeholder="검색 (BOX)" />
-</div>
+        </div>
 
         <div class="list" id="boxList" aria-label="박스 목록"></div>
         <div class="subhint">※ Shift+클릭 다중 선택 · 드래그로 같이 이동</div>
@@ -131,6 +132,6 @@
     </div>
   </div>
 
-  <script src="./app.js?v=20260103-1750"></script>
+  <script src="./app.js?v=20260103-1801"></script>
 </body>
 </html>

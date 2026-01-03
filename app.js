@@ -588,6 +588,10 @@
         // push slot left (toward watermark) as box shrinks
         slot.style.setProperty("right", (12 + extraRight) + "px", "important");
         slot.style.transform = `scale(${scale})`;
+        // adjust name font size for readability
+        const baseName = 18; // px
+        const nameSize = Math.max(12, Math.round(baseName * Math.min(1, scale + 0.25)));
+        slot.style.setProperty("--nameSize", nameSize + "px");
         slot.style.transformOrigin = "top right";
       };
       fitSlot();

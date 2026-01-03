@@ -573,3 +573,19 @@ button,input{font:inherit}
   border:1px solid rgba(74,163,255,.55);
   animation: borderPulse .85s ease-in-out infinite;
 }
+
+
+/* === Responsive name text (readable when box is small) === */
+.slotName{
+  line-height: 1.15;
+  max-width: 100%;
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* base size controlled by CSS var from JS */
+.slotName{
+  font-size: var(--nameSize, 18px);
+}

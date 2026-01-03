@@ -434,9 +434,9 @@
       });
 
       const delBoxBtn = document.createElement("button");
-      delBoxBtn.className = "actionBtn danger";
-      delBoxBtn.textContent = "삭제";
-      delBoxBtn.title = "BOX 삭제";
+      delBoxBtn.className = "actionBtn icon danger";
+      delBoxBtn.textContent = "✕";
+      delBoxBtn.title = "BOX 삭제 (✕)";
       delBoxBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         const ok = confirm(`"${b.name}" 박스를 삭제할까요?`);
@@ -473,8 +473,8 @@
 
       if (b.person) {
         const editBtn = document.createElement("button");
-        editBtn.className = "actionBtn";
-        editBtn.textContent = "수정";
+        editBtn.className = "actionBtn icon";
+        editBtn.textContent = "○";
         editBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           const next = prompt("이름 수정", b.person.name || "");
@@ -487,8 +487,8 @@
         });
 
         const delBtn = document.createElement("button");
-        delBtn.className = "actionBtn danger";
-        delBtn.textContent = "삭제";
+        delBtn.className = "actionBtn icon danger";
+        delBtn.textContent = "✕";
         delBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           // remove person from this box only (not send to wait)
@@ -498,8 +498,8 @@
         });
 
         const un = document.createElement("button");
-        un.className = "actionBtn";
-        un.textContent = "대기로";
+        un.className = "actionBtn icon";
+        un.textContent = "↩";
         un.addEventListener("click", (e) => {
           e.stopPropagation();
           const p = b.person;

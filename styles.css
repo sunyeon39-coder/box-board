@@ -456,3 +456,17 @@ button,input{font:inherit}
 
 /* keep content away from top-right buttons */
 .slotLeft{ padding-top: 34px; }
+
+
+/* === Tiny icon action buttons === */
+.actionBtn{
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  font-size:13px;
+  padding:0;
+  line-height:1;
+}
+.actionBtn.icon{
+  font-weight:900;
+}

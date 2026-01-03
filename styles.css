@@ -589,3 +589,10 @@ button,input{font:inherit}
 .slotName{
   font-size: var(--nameSize, 18px);
 }
+
+
+/* === Name readability boost === */
+.slotName{
+  font-weight: 800;
+  letter-spacing: .2px;
+}

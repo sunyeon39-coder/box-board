@@ -170,8 +170,12 @@ function setTab(tab){
 }
 
 /* ---------- Sidebar ---------- */
-function toggleSide(){ layout.classList.toggle("sideCollapsed"); }
-toggleSideBtn.addEventListener("click", toggleSide);
+function toggleSide(){
+  if(!layout) return;
+  layout.classList.toggle("sideCollapsed");
+}
+if (toggleSideBtn) toggleSideBtn.addEventListener("click", toggleSide);
+
 window.addEventListener("keydown", (e)=>{
   if(e.key === "Tab"){
     e.preventDefault();
@@ -201,13 +205,30 @@ boardOuter.addEventListener("wheel", (e)=>{
 }, { passive:false });
 
 /* ---------- Grid / Snap ---------- */
-function applyGrid(){ gridEl.classList.toggle("hidden", !state.showGrid); }
-snapToggle.checked = !!state.snap;
-gridToggle.checked = !!state.showGrid;
+function applyGrid(){
+  if(!gridEl) return;
+  gridEl.classList.toggle("hidden", !state.showGrid);
+}
+
+// 요소가 없을 수도 있으니(HTML 변경/캐시/탭) 항상 안전가드
+if (snapToggle) snapToggle.checked = !!state.snap;
+if (gridToggle) gridToggle.checked = !!state.showGrid;
 applyGrid();
 
-snapToggle.addEventListener("change", ()=>{ state.snap = snapToggle.checked; saveState(); });
-gridToggle.addEventListener("change", ()=>{ state.showGrid = gridToggle.checked; applyGrid(); saveState(); });
+if (snapToggle) {
+  snapToggle.addEventListener("change", ()=>{
+    state.snap = !!snapToggle.checked;
+    saveState();
+  });
+}
+
+if (gridToggle) {
+  gridToggle.addEventListener("change", ()=>{
+    state.showGrid = !!gridToggle.checked;
+    applyGrid();
+    saveState();
+  });
+}
 
 /* ---------- Add / Search ---------- */
 addWaitBtn.addEventListener("click", ()=>{

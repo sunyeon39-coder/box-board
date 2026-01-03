@@ -677,7 +677,7 @@ function renderBoardBoxes(){
       resizeEl.addEventListener("pointerdown", (e)=>{
         e.stopPropagation();
         e.preventDefault();
-        resizeEl.setPointerCapture(e.pointerId);
+        try{ if(e.pointerId!=null) resizeEl.setPointerCapture(e.pointerId); }catch(err){}
 
         const start = getBoardPointFromClient(e.clientX, e.clientY);
         const box0 = state.boxes.find(x=>x.id===b.id);
@@ -715,6 +715,7 @@ function renderBoardBoxes(){
       resizeEl.addEventListener("pointerup", (e)=>{
         if(ui.resize && ui.resize.pointerId === e.pointerId){
           ui.resize = null;
+          try{ if(e.pointerId!=null && resizeEl.hasPointerCapture && resizeEl.hasPointerCapture(e.pointerId)) resizeEl.releasePointerCapture(e.pointerId); }catch(err){}
           saveState();
         }
       });
@@ -784,7 +785,7 @@ function attachMove(boxEl, boxId){
     }
 
     e.preventDefault();
-    boxEl.setPointerCapture(e.pointerId);
+    try{ if(e.pointerId!=null) boxEl.setPointerCapture(e.pointerId); }catch(err){}
 
     const p = getBoardPointFromClient(e.clientX, e.clientY);
     const startBoxes = getSelectedBoxes().map(b=>({ id:b.id, x:b.x, y:b.y }));
@@ -815,6 +816,7 @@ function attachMove(boxEl, boxId){
   const end = (e)=>{
     if(!ui.drag || ui.drag.pointerId !== e.pointerId) return;
     ui.drag = null;
+    try{ if(e.pointerId!=null && boxEl.hasPointerCapture && boxEl.hasPointerCapture(e.pointerId)) boxEl.releasePointerCapture(e.pointerId); }catch(err){}
     saveState();
   };
   boxEl.addEventListener("pointerup", end);

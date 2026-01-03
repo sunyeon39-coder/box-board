@@ -1,106 +1,102 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Box Board</title>
-  <link rel="stylesheet" href="./styles.css?v=20260103-2301" />
+  <!-- No 404 favicon -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23171a2b'/%3E%3Cpath d='M18 22h28v8H18zM18 34h18v8H18z' fill='%234aa3ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css?v=20260103" />
 </head>
 <body>
-  <div id="topbar" class="topbar">
-    <div class="brand">
-      <div class="logo">Box Board</div>
-      <button class="btn icon" id="toggleSide" title="사이드바 접기/펼치기">☰</button>
-    </div>
-
-    <div class="toolbar">
-      <button class="btn" id="alignH">가로정렬</button>
-      <button class="btn" id="alignV">세로정렬</button>
-      <button class="btn" id="spaceH">가로간격</button>
-      <button class="btn" id="spaceV">세로간격</button>
-      <button class="btn danger" id="selectMode">선택</button>
-
-      <div class="zoom">
-        <button class="btn icon" id="zoomOut" aria-label="축소">-</button>
-        <div class="pill" id="zoomPct">100%</div>
-        <button class="btn icon" id="zoomIn" aria-label="확대">+</button>
-        <button class="btn" id="zoomReset">Reset</button>
+  <div class="app" id="appRoot">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandTitle">Box Board</div>
+        <button class="iconBtn" id="toggleSide" title="사이드바 접기/펼치기 (Tab)">☰</button>
       </div>
 
-      <div class="hint">Ctrl/⌘ + 휠: 확대/축소</div>
-      <div class="savehint" id="saveHint">저장됨 <span id="buildBadge"></span></div>
-    </div>
-  </div>
+      <div class="toolbar">
+        <button class="btn" id="alignH" title="가로정렬 (선택 박스)">가로정렬</button>
+        <button class="btn" id="alignV" title="세로정렬 (선택 박스)">세로정렬</button>
+        <button class="btn" id="spaceH" title="가로간격 분배 (선택 3개 이상)">가로간격</button>
+        <button class="btn" id="spaceV" title="세로간격 분배 (선택 3개 이상)">세로간격</button>
+        <button class="btn btnAccent" id="selectMode" title="선택 모드 토글 (기본: Shift+클릭)">선택</button>
 
-  <div id="layout" class="layout">
-    <aside id="side" class="side">
-      <div class="tabs">
-        <button class="tab active" data-tab="wait">대기</button>
-        <button class="tab" data-tab="assigned">배치</button>
-        <button class="tab" data-tab="boxes">박스</button>
+        <div class="zoomGroup" aria-label="zoom controls">
+          <button class="iconBtn" id="zoomOut" title="축소 (-)">−</button>
+          <div class="zoomPct" id="zoomPct">100%</div>
+          <button class="iconBtn" id="zoomIn" title="확대 (+)">＋</button>
+          <button class="btn" id="zoomReset" title="Reset">Reset</button>
+        </div>
+
+        <div class="saveState">
+          <span class="hint">Ctrl/⌘ + 휠: 확대/축소</span>
+          <span class="saved" id="saveStatus">저장됨</span>
+        </div>
       </div>
-
-      <!-- WAIT -->
-      <section class="panel tabpane active" data-pane="wait">
-        <div class="panelTitle">대기</div>
-        <div class="row">
-          <input id="waitName" class="input" placeholder="이름 입력" autocomplete="off" />
-          <button class="btn primary" id="addWait">추가</button>
-        </div>
-        <div class="row">
-          <input id="waitSearch" class="input" placeholder="검색 (이름)" autocomplete="off" />
-          <button class="btn" id="clearWaitSearch" title="검색 지우기">×</button>
-        </div>
-
-        <div id="waitList" class="list"></div>
-
-        <div class="note">※ 대기 항목을 드래그해서 BOX에 드롭 (기존 배치자는 자동으로 대기로)</div>
-      </section>
-
-      <!-- ASSIGNED -->
-      <section class="panel tabpane" data-pane="assigned">
-        <div class="panelTitle">배치</div>
-        <div class="row">
-          <input id="assignedSearch" class="input" placeholder="검색 (이름)" autocomplete="off" />
-          <button class="btn" id="clearAssignedSearch" title="검색 지우기">×</button>
-        </div>
-        <div id="assignedList" class="list"></div>
-        <div class="note">※ 이름 더블클릭: 대기로</div>
-      </section>
-
-      <!-- BOXES -->
-      <section class="panel tabpane" data-pane="boxes">
-        <div class="panelTitle">박스(목록)</div>
-        <div class="row">
-          <input id="boxName" class="input" placeholder="예: 1" autocomplete="off" />
-          <button class="btn primary" id="addBox">추가</button>
-        </div>
-        <div class="row">
-          <input id="boxSearch" class="input" placeholder="검색 (박스)" autocomplete="off" />
-          <button class="btn" id="clearBoxSearch" title="검색 지우기">×</button>
-        </div>
-        <div id="boxList" class="list"></div>
-        <div class="note">※ Del: 선택 삭제 · Shift+클릭: 다중 선택</div>
-      </section>
-    </aside>
+    </header>
 
     <main class="main">
-      <div class="boardOuter" id="boardOuter">
-        <div class="board" id="board">
-          <div class="grid" id="grid"></div>
-          <!-- boxes injected -->
-        </div>
-      </div>
+      <!-- Sidebar -->
+      <aside class="side" id="sidePanel">
+        <nav class="tabs" role="tablist" aria-label="sections">
+          <button class="tab active" id="tabWait" data-tab="wait">대기</button>
+          <button class="tab" id="tabAssigned" data-tab="assigned">배치</button>
+          <button class="tab" id="tabBoxes" data-tab="boxes">박스</button>
+        </nav>
 
-      <div class="footerHint">
-        <span class="kbd">Shift</span> + 클릭: 다중 선택 ·
-        <span class="kbd">Tab</span>: 사이드바 ·
-        <span class="kbd">Del</span>: 선택 삭제 ·
-        이름 더블클릭: 대기로
-      </div>
+        <section class="panel" id="panelWait" data-panel="wait">
+          <h2 class="panelTitle">대기</h2>
+          <div class="row">
+            <input class="input" id="nameInput" placeholder="이름 입력" autocomplete="off" />
+            <button class="btn btnPrimary" id="addWait">추가</button>
+          </div>
+          <div class="row">
+            <input class="input" id="searchInput" placeholder="검색 (이름)" autocomplete="off" />
+          </div>
+
+          <div class="list" id="waitList" aria-label="waiting list"></div>
+
+          <div class="note">
+            ※ 대기 항목을 드래그해서 BOX에 드롭 (기존 배치자는 자동으로 대기로)
+          </div>
+        </section>
+
+        <section class="panel hidden" id="panelAssigned" data-panel="assigned">
+          <h2 class="panelTitle">배치</h2>
+          <div class="list" id="assignedList" aria-label="assigned list"></div>
+          <div class="note">※ 이름 더블클릭: 대기로</div>
+        </section>
+
+        <section class="panel hidden" id="panelBoxes" data-panel="boxes">
+          <h2 class="panelTitle">박스</h2>
+          <div class="row">
+            <button class="btn btnPrimary" id="addBox">박스 추가</button>
+            <button class="btn btnDanger" id="deleteSelected" title="선택 박스 삭제 (Del)">선택 삭제</button>
+          </div>
+          <div class="note">※ Shift+클릭: 다중 선택 · Del: 선택 삭제</div>
+        </section>
+      </aside>
+
+      <!-- Canvas -->
+      <section class="canvasWrap">
+        <div class="canvas" id="canvas">
+          <div class="grid" id="grid"></div>
+          <div class="boxesLayer" id="boxesLayer" aria-label="boxes layer"></div>
+        </div>
+
+        <footer class="footerHint">
+          <span class="kbd">Shift</span> + 클릭: 다중 선택 ·
+          <span class="kbd">Tab</span>: 사이드바 ·
+          <span class="kbd">Del</span>: 선택 삭제 ·
+          이름 더블클릭: 대기로
+        </footer>
+      </section>
     </main>
   </div>
 
-  <script src="./app.js?v=20260103-2301" defer></script>
+  <script src="./app.js?v=20260103" defer></script>
 </body>
 </html>

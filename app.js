@@ -307,7 +307,7 @@
       el.innerHTML = `
         <div class="nameBadge">${escapeHTML(p.name.slice(0,1))}</div>
         <div class="pill ${pillTimeClass(elapsed)}">
-          <span class="label">BOX ${box ? box.num : '-'}</span>
+          <span class="label">#${box ? box.num : '-'}</span>
           <span class="time">${fmtMS(elapsed)}</span>
         </div>
         <button class="itemBtn">대기</button>

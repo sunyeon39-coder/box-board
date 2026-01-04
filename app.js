@@ -696,12 +696,34 @@
   });
 
   // ---------- ticker (update timers) ----------
+  const updateSeatTimers = () => {
+    // Update only the time text inside existing box DOM (NO full re-render).
+    // This keeps the o-button popover from disappearing/flickering.
+    for(const b of state.boxes){
+      const boxEl = boxesLayer.querySelector(`.box[data-boxid="${b.id}"]`);
+      if(!boxEl) continue;
+      if(b.seatPersonId){
+        const p = getPersonById(b.seatPersonId);
+        if(!p) continue;
+        const nameEl = boxEl.querySelector(".seatName");
+        const timeEl = boxEl.querySelector(".seatTime");
+        if(nameEl && nameEl.textContent !== p.name) nameEl.textContent = p.name;
+        if(timeEl) timeEl.textContent = fmtMS(now() - p.createdAt);
+      }
+
+      if(openPopoverBoxId === b.id){
+        const pop = boxEl.querySelector(".boxPopover");
+        if(pop && typeof pop._updateVal === "function") pop._updateVal();
+      }
+    }
+  };
+
   setInterval(() => {
-    // just rerender visible time strings
+    // list timers
     renderWait();
     renderAssigned();
-    // update seat timers without full rebuild by rerender boxes (cheap enough)
-    renderBoxes();
+    // box timers (no DOM rebuild)
+    updateSeatTimers();
   }, 1000);
 
   // ---------- initial render ----------

@@ -389,3 +389,6 @@ body{
   cursor:pointer;
 }
 .boxPopover .popLink:hover{background: rgba(255,255,255,.08)}
+
+/* safety: hide legacy checkboxes */
+.item input[type="checkbox"], .chk{display:none !important;}

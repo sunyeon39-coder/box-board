@@ -64,6 +64,7 @@
 
   const nameInput = $('#nameInput');
   const addWaitBtn = $('#addWait');
+  if(!addWaitBtn){ console.error('[BoxBoard] #addWait not found'); }
   const searchInput = $('#searchInput');
   const waitList = $('#waitList');
 
@@ -646,7 +647,13 @@
     }
   });
 
-  addWaitBtn.addEventListener('click', ()=> addWaiting(nameInput.value));
+  if(addWaitBtn){
+  const onAddWait = ()=> addWaiting(nameInput.value);
+  addWaitBtn.addEventListener('click', onAddWait);
+  // Mobile Safari sometimes misses click when focus/scroll changes; pointerup is more reliable
+  addWaitBtn.addEventListener('pointerup', (e)=>{ e.preventDefault(); onAddWait(); });
+  addWaitBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); onAddWait(); }, {passive:false});
+  }
   nameInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter') addWaiting(nameInput.value); });
 
   searchInput.addEventListener('input', ()=> renderWait());

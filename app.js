@@ -334,6 +334,7 @@
 
       // o button (settings)
       const oBtn = makeToolDot('o', '글자 크기');
+      oBtn.classList.add('toolO');
       oBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleBoxPopover(boxEl, b.id);

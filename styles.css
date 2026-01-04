@@ -569,3 +569,28 @@ body{
 }
 .chk, .item input[type="checkbox"]{ display:none !important; }
 /* ============================================= */
+/* o 버튼 팝업 – 박스 크기 반응형 */
+.boxPopover{
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(90%, 220px);   /* 박스 크기에 맞춤 */
+  max-width: 220px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(15,18,32,.92);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  z-index: 10;
+}
+
+/* 박스가 작을 때 자동 축소 */
+.box.small .boxPopover{
+  transform: translateY(-50%) scale(0.85);
+}
+
+/* 아주 작을 때 */
+.box.tiny .boxPopover{
+  transform: translateY(-50%) scale(0.75);
+}

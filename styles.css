@@ -267,43 +267,45 @@ body{
 }
 .boxInner{
   position:absolute;
-  right:10px; left:64px; top:30px; bottom:12px;
+  right:10px; left:64px; top:30px; bottom:40px;
   display:flex;
   flex-direction:column;
   justify-content:center;
   gap:6px;
 }
 .seatPill{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  gap:4px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
   width:100%;
-  padding:8px 10px;
+  padding:10px 12px;
   border-radius: 14px;
   border:1px solid rgba(255,255,255,.16);
   background: rgba(0,0,0,.16);
-  overflow:hidden;
 }
 .seatName{
   font-weight:900;
   font-size: calc(22px * var(--seatScale));
-  width:100%;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
-.seatTime{
-  color: rgba(233,236,255,.88);
-  font-variant-numeric: tabular-nums;
-  font-weight:800;
-  font-size: calc(18px * var(--seatScale));
-  width:100%;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+
+/* Bottom anchored timer (so it never gets cut when box is small) */
+.boxTimeBottom{
+  position:absolute;
+  left:64px;
+  right:28px; /* leave space for resize handle */
+  bottom:10px;
   text-align:right;
+  font-variant-numeric: tabular-nums;
+  font-weight:900;
+  font-size: calc(18px * var(--seatScale));
+  color: rgba(233,236,255,.92);
+  pointer-events:none;
+  white-space: nowrap;
 }
 .boxTools{
   position:absolute;
@@ -408,6 +410,3 @@ body{
   cursor:pointer;
 }
 .boxPopover .popLink:hover{background: rgba(255,255,255,.08)}
-
-/* safety: hide legacy checkboxes */
-.item input[type="checkbox"], .chk{display:none !important;}

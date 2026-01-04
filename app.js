@@ -64,7 +64,6 @@
 
   const nameInput = $('#nameInput');
   const addWaitBtn = $('#addWait');
-  if(!addWaitBtn){ console.error('[BoxBoard] #addWait not found'); }
   const searchInput = $('#searchInput');
   const waitList = $('#waitList');
 
@@ -315,20 +314,19 @@
       seat.className = 'seatPill';
       const seated = b.seatPersonId ? getPersonById(b.seatPersonId) : null;
       if(seated){
-        // Stacked layout: name (top) + count-up time (bottom)
-        seat.innerHTML = `
-          <div class="seatName">${escapeHTML(seated.name)}</div>
-          <div class="seatTime">${fmtMS(now()-seated.createdAt)}</div>
-        `;
+        // Name stays in the pill (watermark right side). Timer is anchored to bottom.
+        seat.innerHTML = `<span class="seatName">${escapeHTML(seated.name)}</span>`;
         seat.title = '더블클릭: 대기로';
         seat.addEventListener('dblclick', (e)=>{ e.stopPropagation(); unassignPerson(seated.id); });
       }else{
-        seat.innerHTML = `
-          <div class="seatName" style="opacity:.85">비어있음</div>
-          <div class="seatTime" style="opacity:.55"> </div>
-        `;
+        seat.innerHTML = `<span class="seatName" style="opacity:.85">비어있음</span>`;
       }
       inner.appendChild(seat);
+
+      // Bottom anchored timer (requested: attach to box bottom)
+      const bottomTime = document.createElement('div');
+      bottomTime.className = 'boxTimeBottom';
+      bottomTime.textContent = seated ? fmtMS(now() - seated.createdAt) : '';
 
       // tools
       const tools = document.createElement('div');
@@ -367,7 +365,7 @@
       handle.className = 'resizeHandle';
       handle.title = '크기 조절';
 
-      boxEl.append(numEl, inner, tools, handle);
+      boxEl.append(numEl, inner, bottomTime, tools, handle);
       boxesLayer.appendChild(boxEl);
 
       // If a popover was open, it would disappear on the 1s re-render.
@@ -654,13 +652,7 @@
     }
   });
 
-  if(addWaitBtn){
-  const onAddWait = ()=> addWaiting(nameInput.value);
-  addWaitBtn.addEventListener('click', onAddWait);
-  // Mobile Safari sometimes misses click when focus/scroll changes; pointerup is more reliable
-  addWaitBtn.addEventListener('pointerup', (e)=>{ e.preventDefault(); onAddWait(); });
-  addWaitBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); onAddWait(); }, {passive:false});
-  }
+  addWaitBtn.addEventListener('click', ()=> addWaiting(nameInput.value));
   nameInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter') addWaiting(nameInput.value); });
 
   searchInput.addEventListener('input', ()=> renderWait());
@@ -714,9 +706,12 @@
         const p = getPersonById(b.seatPersonId);
         if(!p) continue;
         const nameEl = boxEl.querySelector(".seatName");
-        const timeEl = boxEl.querySelector(".seatTime");
+        const timeEl = boxEl.querySelector(".boxTimeBottom");
         if(nameEl && nameEl.textContent !== p.name) nameEl.textContent = p.name;
         if(timeEl) timeEl.textContent = fmtMS(now() - p.createdAt);
+      } else {
+        const timeEl = boxEl.querySelector(".boxTimeBottom");
+        if(timeEl) timeEl.textContent = '';
       }
 
       if(openPopoverBoxId === b.id){

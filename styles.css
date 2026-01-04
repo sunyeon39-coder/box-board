@@ -71,14 +71,6 @@ body{
   transition: transform .05s ease, background .12s ease, border-color .12s ease;
   white-space:nowrap;
 }
-.btnSmall{
-  padding:8px 10px;
-  border-radius: 14px;
-  font-weight:800;
-  font-size:13px;
-  min-width: 56px;
-}
-.btnSmall.active{background: rgba(74,163,255,.16); border-color: rgba(74,163,255,.45)}
 .btn:hover,.iconBtn:hover{background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.22)}
 .btn:active,.iconBtn:active{transform: translateY(1px)}
 .iconBtn{padding:10px 12px; min-width:44px; text-align:center}
@@ -196,7 +188,7 @@ body{
 
 /* Just in case: hide any leftover checkbox UI from older versions */
 .chk,
-.item input[type="checkbox"]{display:none !important;}
+.item input[type="checkbox"]{display:none !important}
 .item{
   display:flex;
   align-items:center;
@@ -244,7 +236,6 @@ body{
 .pill .time{font-variant-numeric: tabular-nums}
 
 /* --- Wait list: compact + density modes --- */
-.densityRow{margin-top:2px}
 
 #waitList{--waitGap:10px}
 #waitList.compact{gap:8px}
@@ -268,7 +259,7 @@ body{
   border-radius: 14px;
 }
 
-/* density layouts */
+
 #waitList.density2,
 #waitList.density3{
   display:grid;
@@ -499,29 +490,3 @@ body{
   cursor:pointer;
 }
 .boxPopover .popLink:hover{background: rgba(255,255,255,.08)}
-
-
-/* Assigned list compact sizing (match waiting list height) */
-#assignedList .item{
-  padding:6px 10px;
-  border-radius: 16px;
-  gap:10px;
-}
-#assignedList .nameBadge{
-  font-size:16px;
-  width:auto;
-  min-width:56px;
-}
-#assignedList .pill{
-  padding:6px 10px;
-  min-height: 30px;
-}
-#assignedList .itemBtn{
-  padding:8px 10px;
-  border-radius: 14px;
-}
-
-/* Extra-compact option for both lists (overall ~50% height vs original) */
-#waitList .item, #assignedList .item{ padding:6px 10px; }
-#waitList .pill, #assignedList .pill{ min-height:30px; }
-#waitList .nameBadge, #assignedList .nameBadge{ font-size:16px; }

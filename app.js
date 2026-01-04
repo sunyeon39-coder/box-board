@@ -48,7 +48,7 @@
       sidebarCollapsed: false,
       zoom: 1,
       selectMode: false,
-      waitDensity: 1, // 1 | 2 | 3 (waiting list columns)
+      waitDensity: 1, // fixed (density controls removed)
     },
     people: [], // {id,name,createdAt,assignedBoxId:null|boxId}
     boxes: [],  // {id,num,x,y,w,h,seatPersonId:null|personId,fontScale:1}
@@ -75,9 +75,7 @@
   const addWaitBtn = $('#addWait');
   const searchInput = $('#searchInput');
   const waitList = $('#waitList');
-  const density1Btn = $('#density1');
-  const density2Btn = $('#density2');
-  const density3Btn = $('#density3');
+  // density controls removed
 
   const assignedList = $('#assignedList');
 
@@ -256,10 +254,8 @@
   const renderWait = () => {
     const q = (searchInput.value || '').trim().toLowerCase();
     const waiting = state.people.filter(p => !p.assignedBoxId && (!q || p.name.toLowerCase().includes(q)));
-
-    // waiting list layout (density)
-    waitList.classList.toggle('density2', state.ui.waitDensity === 2);
-    waitList.classList.toggle('density3', state.ui.waitDensity === 3);
+    // waiting list layout (density controls removed)
+    waitList.classList.remove('density2','density3');
     waitList.classList.toggle('compact', true);
 
     waitList.innerHTML = '';
@@ -300,20 +296,26 @@
     const assigned = state.people.filter(p => !!p.assignedBoxId);
     assignedList.innerHTML = '';
     assigned.forEach(p => {
-      const box = getBoxById(p.assignedBoxId);
       const el = document.createElement('div');
       el.className = 'item';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'personName';
+      nameEl.textContent = p.name;
+
+      const pill = document.createElement('div');
       const elapsed = now() - p.createdAt;
-      el.innerHTML = `
-        <div class="nameBadge">${escapeHTML(p.name.slice(0,1))}</div>
-        <div class="pill ${pillTimeClass(elapsed)}">
-          <span class="label">#${box ? box.num : '-'}</span>
-          <span class="time">${fmtMS(elapsed)}</span>
-        </div>
-        <button class="itemBtn">대기</button>
-      `;
-      el.querySelector('.pill').addEventListener('dblclick', () => unassignPerson(p.id));
-      el.querySelector('.itemBtn').addEventListener('click', () => unassignPerson(p.id));
+      pill.className = `pill ${pillTimeClass(elapsed)}`;
+      pill.innerHTML = `<span class="time">${fmtMS(elapsed)}</span>`;
+
+      const backBtn = document.createElement('button');
+      backBtn.className = 'itemBtn';
+      backBtn.textContent = '대기';
+
+      pill.addEventListener('dblclick', () => unassignPerson(p.id));
+      backBtn.addEventListener('click', (e)=>{ e.stopPropagation(); unassignPerson(p.id); });
+
+      el.append(nameEl, pill, backBtn);
       assignedList.appendChild(el);
     });
   };
@@ -685,22 +687,7 @@
   nameInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter') addWaiting(nameInput.value); });
 
   searchInput.addEventListener('input', ()=> renderWait());
-
-  const applyDensityUI = () => {
-    if(!density1Btn || !density2Btn || !density3Btn) return;
-    density1Btn.classList.toggle('active', state.ui.waitDensity === 1);
-    density2Btn.classList.toggle('active', state.ui.waitDensity === 2);
-    density3Btn.classList.toggle('active', state.ui.waitDensity === 3);
-  };
-  const setDensity = (n) => {
-    state.ui.waitDensity = n;
-    applyDensityUI();
-    markDirty();
-    renderWait();
-  };
-  density1Btn && density1Btn.addEventListener('click', ()=> setDensity(1));
-  density2Btn && density2Btn.addEventListener('click', ()=> setDensity(2));
-  density3Btn && density3Btn.addEventListener('click', ()=> setDensity(3));
+  // density controls removed
 
   addBoxBtn.addEventListener('click', addBox);
   deleteSelectedBtn.addEventListener('click', deleteSelectedBoxes);

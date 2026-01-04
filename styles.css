@@ -71,6 +71,14 @@ body{
   transition: transform .05s ease, background .12s ease, border-color .12s ease;
   white-space:nowrap;
 }
+.btnSmall{
+  padding:8px 10px;
+  border-radius: 14px;
+  font-weight:800;
+  font-size:13px;
+  min-width: 56px;
+}
+.btnSmall.active{background: rgba(74,163,255,.16); border-color: rgba(74,163,255,.45)}
 .btn:hover,.iconBtn:hover{background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.22)}
 .btn:active,.iconBtn:active{transform: translateY(1px)}
 .iconBtn{padding:10px 12px; min-width:44px; text-align:center}
@@ -157,6 +165,38 @@ body{
 .input::placeholder{color: rgba(169,176,214,.8)}
 
 .list{display:flex; flex-direction:column; gap:10px; padding-bottom: 6px}
+
+/* Waiting list density (1/2/3 columns) */
+#waitList.density2,
+#waitList.density3{
+  display:grid;
+  align-content:start;
+}
+#waitList.density2{grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px}
+#waitList.density3{grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px}
+
+/* Waiting list compact sizing (about half height) */
+#waitList .item{
+  padding:6px 10px;
+  border-radius: 16px;
+  gap:10px;
+}
+#waitList .personName{
+  font-size:16px;
+  max-width: 120px;
+}
+#waitList .pill{
+  padding:6px 10px;
+  min-height: 30px;
+}
+#waitList .itemBtn{
+  padding:8px 10px;
+  border-radius: 14px;
+}
+
+/* Just in case: hide any leftover checkbox UI from older versions */
+.chk,
+.item input[type="checkbox"]{display:none !important}
 .item{
   display:flex;
   align-items:center;
@@ -195,8 +235,57 @@ body{
   background: rgba(56,211,159,.10);
   font-weight:800;
 }
+
+/* Time-based color (wait/assigned) */
+.pill.tGood{border-color: rgba(56,211,159,.35); background: rgba(56,211,159,.10)}
+.pill.tWarn{border-color: rgba(255,209,102,.42); background: rgba(255,209,102,.12)}
+.pill.tBad{border-color: rgba(255,92,124,.42); background: rgba(255,92,124,.12)}
 .pill .label{opacity:.9}
 .pill .time{font-variant-numeric: tabular-nums}
+
+/* --- Wait list: compact + density modes --- */
+.densityRow{margin-top:2px}
+
+#waitList{--waitGap:10px}
+#waitList.compact{gap:8px}
+
+/* compact item (about half height) */
+#waitList.compact .item{
+  padding:6px 10px;
+  border-radius: 16px;
+  gap:10px;
+}
+#waitList.compact .personName{
+  font-size:16px;
+  max-width: 120px;
+}
+#waitList.compact .pill{
+  padding:6px 10px;
+  font-weight:900;
+}
+#waitList.compact .itemBtn{
+  padding:7px 12px;
+  border-radius: 14px;
+}
+
+/* density layouts */
+#waitList.density2,
+#waitList.density3{
+  display:grid;
+  align-content:start;
+  gap: var(--waitGap);
+}
+#waitList.density2{grid-template-columns: repeat(2, minmax(0,1fr));}
+#waitList.density3{grid-template-columns: repeat(3, minmax(0,1fr));}
+
+/* keep each item full width inside its grid cell */
+#waitList.density2 .item,
+#waitList.density3 .item{width:100%}
+
+/* time heat colors */
+.pill.tGood{border-color: rgba(56,211,159,.35); background: rgba(56,211,159,.10)}
+.pill.tWarn{border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.12)}
+.pill.tBad{border-color: rgba(255,92,124,.50); background: rgba(255,92,124,.12)}
 .itemBtn{
   padding:10px 14px;
   border-radius: 16px;

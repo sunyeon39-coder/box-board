@@ -19,6 +19,14 @@
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
   };
 
+  // time thresholds for list emphasis
+  const pillTimeClass = (elapsedMs) => {
+    const m = elapsedMs / 60000;
+    if(m >= 15) return 'tBad';
+    if(m >= 5) return 'tWarn';
+    return 'tGood';
+  };
+
   // ---------- persistence ----------
   const LS_KEY = 'boxBoard_state_v2026_01_05';
   const loadState = () => {
@@ -40,6 +48,7 @@
       sidebarCollapsed: false,
       zoom: 1,
       selectMode: false,
+      waitDensity: 1, // 1 | 2 | 3 (waiting list columns)
     },
     people: [], // {id,name,createdAt,assignedBoxId:null|boxId}
     boxes: [],  // {id,num,x,y,w,h,seatPersonId:null|personId,fontScale:1}
@@ -66,6 +75,9 @@
   const addWaitBtn = $('#addWait');
   const searchInput = $('#searchInput');
   const waitList = $('#waitList');
+  const density1Btn = $('#density1');
+  const density2Btn = $('#density2');
+  const density3Btn = $('#density3');
 
   const assignedList = $('#assignedList');
 
@@ -87,6 +99,15 @@
   const spaceVBtn = $('#spaceV');
 
   const saveStatus = $('#saveStatus');
+
+  // waiting time thresholds (ms)
+  const WAIT_WARN_MS = 5 * 60 * 1000;   // 5m
+  const WAIT_BAD_MS  = 15 * 60 * 1000;  // 15m
+  const timeClass = (elapsedMs) => {
+    if(elapsedMs >= WAIT_BAD_MS) return 'tBad';
+    if(elapsedMs >= WAIT_WARN_MS) return 'tWarn';
+    return 'tGood';
+  };
 
   // ---------- save status debounce ----------
   let saveTimer = null;
@@ -236,6 +257,11 @@
     const q = (searchInput.value || '').trim().toLowerCase();
     const waiting = state.people.filter(p => !p.assignedBoxId && (!q || p.name.toLowerCase().includes(q)));
 
+    // waiting list layout (density)
+    waitList.classList.toggle('density2', state.ui.waitDensity === 2);
+    waitList.classList.toggle('density3', state.ui.waitDensity === 3);
+    waitList.classList.toggle('compact', true);
+
     waitList.innerHTML = '';
     waiting.forEach(p => {
       const el = document.createElement('div');
@@ -249,8 +275,10 @@
       nameEl.textContent = p.name;
 
       const pill = document.createElement('div');
-      pill.className = 'pill';
-      pill.innerHTML = `<span class="time">${fmtMS(now()-p.createdAt)}</span>`;
+      const elapsed = now() - p.createdAt;
+      pill.className = `pill ${pillTimeClass(elapsed)}`;
+      // right side: TIME ONLY
+      pill.innerHTML = `<span class="time">${fmtMS(elapsed)}</span>`;
 
       const del = document.createElement('button');
       del.className = 'itemBtn';
@@ -275,11 +303,12 @@
       const box = getBoxById(p.assignedBoxId);
       const el = document.createElement('div');
       el.className = 'item';
+      const elapsed = now() - p.createdAt;
       el.innerHTML = `
         <div class="nameBadge">${escapeHTML(p.name.slice(0,1))}</div>
-        <div class="pill" style="border-color: rgba(255,209,102,.35); background: rgba(255,209,102,.10)">
+        <div class="pill ${pillTimeClass(elapsed)}">
           <span class="label">BOX ${box ? box.num : '-'}</span>
-          <span class="time">${fmtMS(now()-p.createdAt)}</span>
+          <span class="time">${fmtMS(elapsed)}</span>
         </div>
         <button class="itemBtn">대기</button>
       `;
@@ -657,6 +686,22 @@
 
   searchInput.addEventListener('input', ()=> renderWait());
 
+  const applyDensityUI = () => {
+    if(!density1Btn || !density2Btn || !density3Btn) return;
+    density1Btn.classList.toggle('active', state.ui.waitDensity === 1);
+    density2Btn.classList.toggle('active', state.ui.waitDensity === 2);
+    density3Btn.classList.toggle('active', state.ui.waitDensity === 3);
+  };
+  const setDensity = (n) => {
+    state.ui.waitDensity = n;
+    applyDensityUI();
+    markDirty();
+    renderWait();
+  };
+  density1Btn && density1Btn.addEventListener('click', ()=> setDensity(1));
+  density2Btn && density2Btn.addEventListener('click', ()=> setDensity(2));
+  density3Btn && density3Btn.addEventListener('click', ()=> setDensity(3));
+
   addBoxBtn.addEventListener('click', addBox);
   deleteSelectedBtn.addEventListener('click', deleteSelectedBoxes);
 
@@ -734,6 +779,8 @@
     applySidebar();
     applyZoom();
     selectModeBtn.classList.toggle('active', state.ui.selectMode);
+    // waiting list density buttons
+    try{ applyDensityUI(); }catch(_){/* ignore */}
     setTab(state.ui.tab);
     renderWait();
     renderAssigned();

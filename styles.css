@@ -490,3 +490,33 @@ body{
   cursor:pointer;
 }
 .boxPopover .popLink:hover{background: rgba(255,255,255,.08)}
+
+
+/* --- FIX: list row layout (prevent name clipping) --- */
+#waitList .item, #assignedList .item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+#waitList .personName, #assignedList .personName{
+  font-weight:900;
+  line-height:1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:64px;           /* prevents single-letter clipping */
+  max-width: 42%;
+}
+#waitList .pill, #assignedList .pill{
+  flex:1;
+  min-width: 0;
+}
+#assignedList .itemBtn{
+  padding:8px 12px;
+}
+/* keep compact height */
+#waitList .item, #assignedList .item{
+  padding:6px 10px;
+  border-radius:16px;
+}
+

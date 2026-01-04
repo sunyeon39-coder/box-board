@@ -34,6 +34,7 @@ body{
   align-items:center;
   gap:14px;
   padding:10px 12px;
+  font-size: calc(16px * var(--seatScale));
 }
 .brand{
   display:flex; align-items:center; gap:10px;
@@ -230,6 +231,7 @@ body{
 .boxesLayer{position:absolute; inset:0}
 
 .box{
+  --seatScale: 1;
   position:absolute;
   width: 220px;
   height: 120px;
@@ -273,8 +275,8 @@ body{
   border:1px solid rgba(255,255,255,.16);
   background: rgba(0,0,0,.16);
 }
-.seatName{font-weight:900}
-.seatTime{color: rgba(233,236,255,.88); font-variant-numeric: tabular-nums; font-weight:800}
+.seatName{font-weight:900; font-size: calc(22px * var(--seatScale))}
+.seatTime{color: rgba(233,236,255,.88); font-variant-numeric: tabular-nums; font-weight:800; font-size: calc(18px * var(--seatScale))}
 .boxTools{
   position:absolute;
   top:6px; right:6px;
@@ -317,3 +319,64 @@ body{
   background: rgba(0,0,0,.16);
   font-weight:900;
 }
+
+
+/* Box tool popover (o button) */
+.boxPopover{
+  position:absolute;
+  right:6px;
+  top:30px;
+  width: 180px;
+  padding:10px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(10,12,22,.86);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.45);
+  z-index: 20;
+}
+.boxPopover .popTitle{
+  font-weight:900;
+  font-size:12px;
+  color: rgba(233,236,255,.88);
+  margin-bottom:8px;
+}
+.boxPopover .popRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.boxPopover .popVal{
+  flex:1;
+  text-align:center;
+  padding:8px 10px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  font-weight:900;
+  font-variant-numeric: tabular-nums;
+}
+.boxPopover .popBtn{
+  width:34px;
+  height:34px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  font-weight:900;
+  cursor:pointer;
+}
+.boxPopover .popBtn:hover{background: rgba(255,255,255,.10)}
+.boxPopover .popBtn:active{transform: translateY(1px)}
+.boxPopover .popLink{
+  margin-top:8px;
+  width:100%;
+  padding:8px 10px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: rgba(233,236,255,.9);
+  font-weight:800;
+  cursor:pointer;
+}
+.boxPopover .popLink:hover{background: rgba(255,255,255,.08)}

@@ -167,21 +167,11 @@ body{
   background: rgba(0,0,0,.18);
 }
 .item.dragging{opacity:.6}
-.chk{width:18px; height:18px}
 .nameBadge{
   font-weight:900;
   font-size:20px;
   width:34px;
   text-align:left;
-  color: rgba(233,236,255,.92);
-}
-.nameText{
-  font-weight:900;
-  font-size:18px;
-  max-width: 140px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
   color: rgba(233,236,255,.92);
 }
 .pill{
